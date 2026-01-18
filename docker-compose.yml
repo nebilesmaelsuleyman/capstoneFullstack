@@ -1,0 +1,34 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: school_db
+    restart: always
+    environment:
+      POSTGRES_DB: school_management
+      POSTGRES_USER: school_admin
+      POSTGRES_PASSWORD: school_secure_pass_2024
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./backend/init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - school_network
+
+  redis:
+    image: redis:7-alpine
+    container_name: school_redis
+    restart: always
+    ports:
+      - "6379:6379"
+    networks:
+      - school_network
+
+volumes:
+  postgres_data:
+
+networks:
+  school_network:
+    driver: bridge
