@@ -1,4 +1,4 @@
-import { Injectable, Inject } from "@nestjs/common";
+import { Injectable, Inject,HttpException } from "@nestjs/common";
 import  { Pool } from "pg";
 
 @Injectable()
@@ -47,12 +47,14 @@ export class StudentsService {
        WHERE s.id = $1`,
       [id],
     );
-
+    
     return result.rows[0];
   }
 
   async create(studentData: any) {
     const client = await this.pool.connect();
+    console.log("crate service triggerd")
+    console.log("Creating student with data:", studentData);  
     try {
       await client.query("BEGIN");
 
@@ -77,23 +79,29 @@ export class StudentsService {
          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *`,
         [
           userId,
-          studentData.studentId,
-          studentData.dateOfBirth,
-          studentData.gender,
-          studentData.address,
-          studentData.parentName,
-          studentData.parentPhone,
-          studentData.parentEmail,
-          studentData.gradeLevel,
+          studentData.studentId  ?? null,
+          studentData.dateOfBirt ?? null,
+          studentData.gender ?? null,
+          studentData.address ?? null,
+          studentData.parentName ?? null,
+          studentData.parentPhone ?? null,
+           studentData.parentEmail ?? null,
+          studentData.gradeLevel ?? null,
         ],
       );
      
       await client.query("COMMIT");
       console.log('student created successfully',studentResult.rows[0]);
-      return studentResult.rows[0];
+     return {
+  success: true,
+  data: studentResult.rows[0],
+};
     } catch (error) {
       await client.query("ROLLBACK");
-      throw error;
+     throw new HttpException(
+  { success: false, error: 'Failed to create student' },
+  500,
+);
     } finally {
       client.release();
     }

@@ -19,6 +19,7 @@ export class StudentsController {
 
   @Post()
   create(@Body() studentData: any) {
+    console.log('crate student controller triggered')
     return this.studentsService.create(studentData);
   }
 

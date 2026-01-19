@@ -10,7 +10,8 @@ import { Plus, Search } from "lucide-react"
 import { useStudents } from "@/hooks/use-students"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
-import { useToast } from "@/hooks/use-toast"
+
+import { toast } from "sonner"
 
 export default function StudentsPage() {
   const [search, setSearch] = useState("")
@@ -23,7 +24,7 @@ export default function StudentsPage() {
     className: "",
   })
   const { students, isLoading, addStudent, updateStudent, deleteStudent } = useStudents(1, search)
-  const { toast } = useToast()
+  
 
   const handleAddClick = () => {
     setFormData({ firstName: "", lastName: "", email: "", grade: "", className: "" })
@@ -33,21 +34,21 @@ export default function StudentsPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     console.log("submitting student:", formData)
-    const result = await addStudent(formData)
+    const payload = {
+    firstName: formData.firstName,
+    lastName: formData.lastName,
+    email: formData.email,
+    gradeLevel: formData.grade, // Map 'grade' to 'gradeLevel'
+    // add other fields if necessary
+  };
+    const result = await addStudent(payload)
     console.log("Add student result:", result)
     if (result.success) {
-      toast({
-        title: "Success",
-        description: "Student added successfully",
-      })
+      toast.success("Student added successfully")
       setOpen(false)
       setFormData({ firstName: "", lastName: "", email: "", grade: "", className: "" })
     } else {
-      toast({
-        title: "Error",
-        description: result.error || "Failed to add student",
-        variant: "destructive",
-      })
+      toast.error('failed to add student')
     }
   }
 

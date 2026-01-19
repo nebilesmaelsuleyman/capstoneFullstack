@@ -31,14 +31,14 @@ class ApiClient {
   }
 
   private async request<T>(endpoint: string, options: RequestInit = {}): Promise<ApiResponse<T>> {
-    const headers: HeadersInit = {
-      "Content-Type": "application/json",
-      ...options.headers,
-    }
+    const headers = new Headers(options.headers);
+
+  // Use the .set() method to safely add or override values
+    headers.set("Content-Type", "application/json");
 
     if (this.token) {
-      headers["Authorization"] = `Bearer ${this.token}`
-    }
+    headers.set("Authorization", `Bearer ${this.token}`);
+  }
 
     try {
       const response = await fetch(`${this.baseUrl}${endpoint}`, {

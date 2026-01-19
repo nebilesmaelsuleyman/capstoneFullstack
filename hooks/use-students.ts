@@ -23,15 +23,23 @@ export function useStudents(page = 1, search = "") {
     fetchStudents()
   }, [page, search])
 
-  const addStudent = async (studentData: any) => {
-    const response = await apiClient.createStudent(studentData)
+const addStudent = async (studentData: any) => {
+  try {
+    const response = await apiClient.createStudent(studentData);
+    console.log("Hook createStudent response:", response); // This will show in the BROWSER console   
     if (response.error) {
-      setError(response.error)
-      return { success: false, error: response.error }
+      setError(response.error);
+      return { success: false, error: response.error };
     }
-    setStudents([...students, response.data])
-    return { success: true }
+
+    // assume response.data contains the created student
+    setStudents((prev) => [...prev, response.data]);
+    return { success: true, data: response.data };
+  } catch (err) {
+    console.error("Hook Error:", err); // This will show in the BROWSER console
+    return { success: false, error: "Network or Server Error" };
   }
+};
 
   const updateStudent = async (id: number, studentData: any) => {
     const response = await apiClient.updateStudent(id, studentData)
