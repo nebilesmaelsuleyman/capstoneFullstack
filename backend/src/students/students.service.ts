@@ -57,7 +57,7 @@ export class StudentsService {
     console.log("Creating student with data:", studentData);  
     try {
       await client.query("BEGIN");
-
+       const generateStudentId=`STU-${Date.now()}`
       // Create user
       const userResult = await client.query(
         `INSERT INTO users (email, password_hash, role, first_name, last_name, phone)
@@ -79,8 +79,8 @@ export class StudentsService {
          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *`,
         [
           userId,
-          studentData.studentId  ?? null,
-          studentData.dateOfBirt ?? null,
+          studentData.studentId  ?? generateStudentId,
+          studentData.dateOfBirth ?? null,
           studentData.gender ?? null,
           studentData.address ?? null,
           studentData.parentName ?? null,
@@ -98,6 +98,7 @@ export class StudentsService {
 };
     } catch (error) {
       await client.query("ROLLBACK");
+      console.error("DATABASE ERROR:", error); 
      throw new HttpException(
   { success: false, error: 'Failed to create student' },
   500,
