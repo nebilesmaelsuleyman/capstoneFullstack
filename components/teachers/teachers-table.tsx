@@ -19,7 +19,7 @@ import {
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { useToast } from "@/hooks/use-toast"
+import {toast} from 'sonner'
 
 interface Teacher {
   id: number
@@ -49,7 +49,7 @@ export function TeachersTable({ teachers, isLoading, onAdd, onUpdate, onDelete }
     department: "",
     subjects: "",
   })
-  const { toast } = useToast()
+ 
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -58,26 +58,15 @@ export function TeachersTable({ teachers, isLoading, onAdd, onUpdate, onDelete }
       const result = editingId ? await onUpdate(editingId, formData) : await onAdd(formData)
 
       if (result.success) {
-        toast({
-          title: "Success",
-          description: editingId ? "Teacher updated successfully" : "Teacher added successfully",
-        })
+        toast.success(`Teacher ${editingId ? "updated" : "added"} successfully`)
         setOpen(false)
         setEditingId(null)
         setFormData({ firstName: "", lastName: "", email: "", department: "", subjects: "" })
       } else {
-        toast({
-          title: "Error",
-          description: result.error || "Failed to save teacher",
-          variant: "destructive",
-        })
+        toast.error(result.error || `Failed to ${editingId ? "update" : "add"} teacher`)
       }
     } catch (error) {
-      toast({
-        title: "Error",
-        description: "An error occurred",
-        variant: "destructive",
-      })
+      toast.error('An unexpected error occurred')
     }
   }
 
@@ -85,16 +74,9 @@ export function TeachersTable({ teachers, isLoading, onAdd, onUpdate, onDelete }
     if (window.confirm("Are you sure you want to delete this teacher?")) {
       const result = await onDelete(id)
       if (result.success) {
-        toast({
-          title: "Success",
-          description: "Teacher deleted successfully",
-        })
+        toast.success("Teacher deleted successfully")
       } else {
-        toast({
-          title: "Error",
-          description: result.error || "Failed to delete teacher",
-          variant: "destructive",
-        })
+        toast.error(result.error || "Failed to delete teacher")
       }
     }
   }
@@ -201,7 +183,7 @@ export function TeachersTable({ teachers, isLoading, onAdd, onUpdate, onDelete }
                   <div className="flex items-center gap-3">
                     <Avatar className="h-9 w-9">
                       <AvatarFallback className="bg-secondary text-xs">
-                        {`${teacher.firstName[0]}${teacher.lastName[0]}`}
+                        {`${teacher.firstName ||"" }${teacher.lastName ||""}`}
                       </AvatarFallback>
                     </Avatar>
                     <div>
@@ -213,11 +195,11 @@ export function TeachersTable({ teachers, isLoading, onAdd, onUpdate, onDelete }
                 <TableCell>{teacher.department}</TableCell>
                 <TableCell>
                   <div className="flex gap-1">
-                    {teacher.subjects.split(",").map((subject) => (
+                    {(teacher.subjects || "").split(",").map((subject) => (
                       <Badge key={subject.trim()} variant="outline" className="text-xs">
                         {subject.trim()}
                       </Badge>
-                    ))}
+                    )) || "NO subjects"}
                   </div>
                 </TableCell>
                 <TableCell>

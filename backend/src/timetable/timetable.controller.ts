@@ -3,7 +3,7 @@ import { JwtAuthGuard } from "../auth/jwt-auth.guard"
 import  { TimetableService } from "./timetable.service"
 
 @Controller("timetable")
-@UseGuards(JwtAuthGuard)
+// @UseGuards(JwtAuthGuard)
 export class TimetableController {
   constructor(private readonly timetableService: TimetableService) {}
 

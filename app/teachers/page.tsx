@@ -10,7 +10,7 @@ import { Plus, Search } from "lucide-react"
 import { useTeachers } from "@/hooks/use-teachers"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
-import { useToast } from "@/hooks/use-toast"
+import {toast} from 'sonner'
 
 export default function TeachersPage() {
   const [search, setSearch] = useState("")
@@ -22,8 +22,7 @@ export default function TeachersPage() {
     department: "",
     subjects: "",
   })
-  const { teachers, isLoading, addTeacher, updateTeacher, deleteTeacher } = useTeachers(1, search)
-  const { toast } = useToast()
+  const { teachers, isLoading, addTeacher, updateTeacher , deleteTeacher } = useTeachers(1, search) 
 
   const handleAddClick = () => {
     setFormData({ firstName: "", lastName: "", email: "", department: "", subjects: "" })
@@ -34,18 +33,11 @@ export default function TeachersPage() {
     e.preventDefault()
     const result = await addTeacher(formData)
     if (result.success) {
-      toast({
-        title: "Success",
-        description: "Teacher added successfully",
-      })
+      toast.success("Teacher added successfully")
       setOpen(false)
       setFormData({ firstName: "", lastName: "", email: "", department: "", subjects: "" })
     } else {
-      toast({
-        title: "Error",
-        description: result.error || "Failed to add teacher",
-        variant: "destructive",
-      })
+      toast.error('failed to add teacher')
     }
   }
 
