@@ -18,7 +18,7 @@ import {
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { useToast } from "@/hooks/use-toast"
+import {toast} from 'sonner'
 
 interface Student {
   id: number
@@ -48,7 +48,7 @@ export function StudentsTable({ students, isLoading, onAdd, onUpdate, onDelete }
     grade: "",
     className: "",
   })
-  const { toast } = useToast()
+ 
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -57,26 +57,15 @@ export function StudentsTable({ students, isLoading, onAdd, onUpdate, onDelete }
       const result = editingId ? await onUpdate(editingId, formData) : await onAdd(formData)
 
       if (result.success) {
-        toast({
-          title: "Success",
-          description: editingId ? "Student updated successfully" : "Student added successfully",
-        })
+        toast.success(`Student ${editingId ? "updated" : "added"} successfully`)
         setOpen(false)
         setEditingId(null)
         setFormData({ firstName: "", lastName: "", email: "", grade: "", className: "" })
       } else {
-        toast({
-          title: "Error",
-          description: result.error || "Failed to save student",
-          variant: "destructive",
-        })
+        toast.error(result.error || `Failed to ${editingId ? "update" : "add"} student`)
       }
     } catch (error) {
-      toast({
-        title: "Error",
-        description: "An error occurred",
-        variant: "destructive",
-      })
+      toast.error("An unexpected error occurred")
     }
   }
 
@@ -84,16 +73,10 @@ export function StudentsTable({ students, isLoading, onAdd, onUpdate, onDelete }
     if (window.confirm("Are you sure you want to delete this student?")) {
       const result = await onDelete(id)
       if (result.success) {
-        toast({
-          title: "Success",
-          description: "Student deleted successfully",
-        })
+        toast.success("Student deleted successfully")
       } else {
-        toast({
-          title: "Error",
-          description: result.error || "Failed to delete student",
-          variant: "destructive",
-        })
+        toast.error(result.error || "Failed to delete student")
+        
       }
     }
   }
@@ -194,8 +177,8 @@ export function StudentsTable({ students, isLoading, onAdd, onUpdate, onDelete }
               </TableCell>
             </TableRow>
           ) : (
-            students.map((student) => (
-              <TableRow key={student.id}>
+            students.map((student, index) => (
+              <TableRow key={student.id || student.email || index}>
                 <TableCell className="font-medium">{`${student.firstName} ${student.lastName}`}</TableCell>
                 <TableCell className="text-muted-foreground">{student.email}</TableCell>
                 <TableCell>{student.grade}</TableCell>

@@ -11,22 +11,28 @@ export class StudentsService {
     const offset = (page - 1) * limit;
 
     let query = `
-      SELECT s.*, u.email, u.first_name, u.last_name, u.phone, u.is_active
-      FROM students s
-      JOIN users u ON s.user_id = u.id
-      WHERE 1=1
+      SELECT 
+      s.id,
+      u.first_name AS "firstName",
+      u.last_name AS "lastName",
+      u.email,
+      s.grade_level AS "grade",
+      
+      CASE WHEN u.is_active = true THEN 'Active' ELSE 'Inactive' END AS "status"
+    FROM students s
+    JOIN users u ON s.user_id = u.id
     `;
     const params: any[] = [];
 
-    if (search) {
-      query += ` AND (u.first_name ILIKE $${params.length + 1} OR u.last_name ILIKE $${params.length + 1} OR s.student_id ILIKE $${params.length + 1})`;
-      params.push(`%${search}%`);
-    }
+   if (search) {
+    query += ` WHERE (u.first_name ILIKE $1 OR u.last_name ILIKE $1 OR u.email ILIKE $1)`;
+    params.push(`%${search}%`);
+  }
 
-    query += ` ORDER BY s.created_at DESC LIMIT $${params.length + 1} OFFSET $${params.length + 2}`;
-    params.push(limit, offset);
+   query += ` ORDER BY s.created_at DESC LIMIT $${params.length + 1} OFFSET $${params.length + 2}`;
+  params.push(limit, offset);
 
-    const result = await this.pool.query(query, params);
+  const result = await this.pool.query(query, params);
 
     const countQuery = `SELECT COUNT(*) FROM students s JOIN users u ON s.user_id = u.id`;
     const countResult = await this.pool.query(countQuery);
@@ -41,7 +47,7 @@ export class StudentsService {
 
   async findOne(id: number) {
     const result = await this.pool.query(
-      `SELECT s.*, u.email, u.first_name, u.last_name, u.phone, u.is_active, u.avatar_url
+      `SELECT s.*, u.email, u.first_name AS "firstName", u.last_name AS "lastName", u.phone, u.is_active AS "status", u.avatar_url
        FROM students s
        JOIN users u ON s.user_id = u.id
        WHERE s.id = $1`,
@@ -66,7 +72,7 @@ export class StudentsService {
           studentData.email,
           "$2b$10$defaultHashedPassword", // Should be properly hashed
           studentData.firstName,
-          studentData.lastName,
+          studentData.lastName, 
           studentData.phone || null,
         ],
       );
@@ -85,17 +91,33 @@ export class StudentsService {
           studentData.address ?? null,
           studentData.parentName ?? null,
           studentData.parentPhone ?? null,
-           studentData.parentEmail ?? null,
-          studentData.gradeLevel ?? null,
-        ],
+          studentData.parentEmail ?? null,
+          studentData.grade,
+        ]
       );
      
+      // capture the inserted student row
+      const studentRow = studentResult.rows[0];
+
       await client.query("COMMIT");
-      console.log('student created successfully',studentResult.rows[0]);
-     return {
-  success: true,
-  data: studentResult.rows[0],
-};
+
+    const responseData = {
+        // Use the ID from the student table for the unique key
+        id: studentRow.id,
+        firstName: studentData.firstName,
+        lastName: studentData.lastName,
+        email: studentData.email,
+        grade: studentData.grade,
+        className: studentData.className ?? "N/A",
+        status: "Active"
+      };
+
+      console.log('Final formatted response for frontend:', responseData);
+
+      return {
+        success: true,
+        data: responseData,
+      };
     } catch (error) {
       await client.query("ROLLBACK");
       console.error("DATABASE ERROR:", error); 
@@ -108,8 +130,35 @@ export class StudentsService {
     }
   }
 
-  async update(id: number, studentData: any) {
-    const result = await this.pool.query(
+async update(id: number, studentData: any) {
+  const client = await this.pool.connect();
+  try {
+    await client.query("BEGIN");
+
+    // 1. Get the user_id associated with this student first
+    const studentInfo = await client.query('SELECT user_id FROM students WHERE id = $1', [id]);
+    if (studentInfo.rows.length === 0) throw new Error("Student not found");
+    const userId = studentInfo.rows[0].user_id;
+
+    // 2. Update the USERS table (First Name, Last Name, Email)
+    await client.query(
+      `UPDATE users 
+       SET first_name = COALESCE($1, first_name),
+           last_name = COALESCE($2, last_name),
+           email = COALESCE($3, email),
+           updated_at = CURRENT_TIMESTAMP
+       WHERE id = $4`,
+      [
+        studentData.firstName, 
+        studentData.lastName, 
+        studentData.email, 
+        userId
+      ]
+    );
+
+    // 3. Update the STUDENTS table
+    // Note: changed studentData.gradeLel to studentData.grade
+    const result = await client.query(
       `UPDATE students 
        SET date_of_birth = COALESCE($1, date_of_birth),
            gender = COALESCE($2, gender),
@@ -128,13 +177,31 @@ export class StudentsService {
         studentData.parentName,
         studentData.parentPhone,
         studentData.parentEmail,
-        studentData.gradeLevel,
+        studentData.grade, 
         id,
       ],
     );
 
-    return result.rows[0];
+    await client.query("COMMIT");
+
+    // 4. Return the combined data so the frontend doesn't show "undefined"
+    return {
+      id: result.rows[0].id,
+      firstName: studentData.firstName,
+      lastName: studentData.lastName,
+      email: studentData.email,
+      grade: studentData.grade,
+      status: "Active" // Or fetch actual status from user table
+    };
+
+  } catch (error) {
+    await client.query("ROLLBACK");
+    console.error("UPDATE ERROR:", error);
+    throw error;
+  } finally {
+    client.release();
   }
+}
 
   async delete(id: number) {
     await this.pool.query("DELETE FROM students WHERE id = $1", [id]);

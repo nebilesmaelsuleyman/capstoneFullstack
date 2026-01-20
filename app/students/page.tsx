@@ -38,8 +38,8 @@ export default function StudentsPage() {
     firstName: formData.firstName,
     lastName: formData.lastName,
     email: formData.email,
-    gradeLevel: formData.grade, // Map 'grade' to 'gradeLevel'
-    // add other fields if necessary
+    grade: formData.grade, 
+    className: formData.className,
   };
     const result = await addStudent(payload)
     console.log("Add student result:", result)
