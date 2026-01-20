@@ -33,12 +33,12 @@ class ApiClient {
   private async request<T>(endpoint: string, options: RequestInit = {}): Promise<ApiResponse<T>> {
     const headers = new Headers(options.headers);
 
-  // Use the .set() method to safely add or override values
+    // Use the .set() method to safely add or override values
     headers.set("Content-Type", "application/json");
 
     if (this.token) {
-    headers.set("Authorization", `Bearer ${this.token}`);
-  }
+      headers.set("Authorization", `Bearer ${this.token}`);
+    }
 
     try {
       const response = await fetch(`${this.baseUrl}${endpoint}`, {
@@ -60,7 +60,7 @@ class ApiClient {
 
   // Auth endpoints
   async login(email: string, password: string) {
-    return this.request<{ access_token: string; user: any }>("auth/login", {
+    return this.request<{ access_token: string; user: any }>("/auth/login", {
       method: "POST",
       body: JSON.stringify({ email, password }),
     })
