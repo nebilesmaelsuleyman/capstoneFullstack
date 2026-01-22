@@ -1,11 +1,13 @@
-import { Controller, Get, Param, UseGuards } from "@nestjs/common"
-import  { ClassesService } from "./classes.service"
+import { Controller, Get, Post, Put, Delete, Body, Param, UseGuards } from "@nestjs/common"
+import { ClassesService } from "./classes.service"
 import { JwtAuthGuard } from "../auth/jwt-auth.guard"
+import { CreateClassDto } from "./dto/create-class.dto"
+import { UpdateClassDto } from "./dto/update-class.dto"
 
 @Controller("classes")
-@UseGuards(JwtAuthGuard)
+// @UseGuards(JwtAuthGuard)
 export class ClassesController {
-  constructor(private classesService: ClassesService) {}
+  constructor(private classesService: ClassesService) { }
 
   @Get()
   findAll() {
@@ -15,5 +17,21 @@ export class ClassesController {
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.classesService.findOne(Number.parseInt(id));
+  }
+
+  @Post()
+  create(@Body() createClassDto: CreateClassDto) {
+    console.log('Class create endpoint hit', createClassDto);
+    return this.classesService.create(createClassDto);
+  }
+
+  @Put(':id')
+  update(@Param('id') id: string, @Body() updateClassDto: UpdateClassDto) {
+    return this.classesService.update(Number.parseInt(id), updateClassDto);
+  }
+
+  @Delete(':id')
+  remove(@Param('id') id: string) {
+    return this.classesService.remove(Number.parseInt(id));
   }
 }

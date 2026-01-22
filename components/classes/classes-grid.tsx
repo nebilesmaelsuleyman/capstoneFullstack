@@ -1,75 +1,65 @@
+'use client'
+
+import { useEffect, useState } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Users, Clock } from "lucide-react"
+import { Skeleton } from "@/components/ui/skeleton"
 
-const classes = [
-  {
-    id: "CLS001",
-    name: "Mathematics - Advanced",
-    code: "MATH-12A",
-    teacher: "Dr. Jennifer Smith",
-    students: 28,
-    capacity: 30,
-    schedule: "Mon, Wed, Fri 9:00 AM",
-    grade: "12",
-  },
-  {
-    id: "CLS002",
-    name: "Physics - Lab",
-    code: "PHY-11B",
-    teacher: "Prof. David Johnson",
-    students: 25,
-    capacity: 30,
-    schedule: "Tue, Thu 10:30 AM",
-    grade: "11",
-  },
-  {
-    id: "CLS003",
-    name: "English Literature",
-    code: "ENG-10A",
-    teacher: "Ms. Sarah Williams",
-    students: 30,
-    capacity: 30,
-    schedule: "Mon, Wed 2:00 PM",
-    grade: "10",
-  },
-  {
-    id: "CLS004",
-    name: "Chemistry - Organic",
-    code: "CHEM-12C",
-    teacher: "Dr. Robert Lee",
-    students: 22,
-    capacity: 30,
-    schedule: "Tue, Thu, Fri 11:00 AM",
-    grade: "12",
-  },
-  {
-    id: "CLS005",
-    name: "World History",
-    code: "HIST-11A",
-    teacher: "Mr. Michael Brown",
-    students: 27,
-    capacity: 30,
-    schedule: "Mon, Wed, Fri 1:00 PM",
-    grade: "11",
-  },
-  {
-    id: "CLS006",
-    name: "Biology - Advanced",
-    code: "BIO-12B",
-    teacher: "Dr. Emily Davis",
-    students: 26,
-    capacity: 30,
-    schedule: "Tue, Thu 9:00 AM",
-    grade: "12",
-  },
-]
+interface ClassItem {
+  id: number
+  class_name: string
+  class_code: string
+  teacher_name: string
+  student_count: string
+  capacity: number
+  academic_year: string
+  grade_level: number
+  section: string
+}
 
 export function ClassesGrid() {
+  const [classes, setClasses] = useState<ClassItem[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    async function fetchClasses() {
+      try {
+        const token = localStorage.getItem('token');
+        const response = await fetch('http://localhost:4000/api/classes', {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        })
+        if (response.ok) {
+          const data = await response.json()
+          setClasses(data)
+        }
+      } catch (error) {
+        console.error("Failed to fetch classes", error)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchClasses()
+  }, [])
+
+  if (loading) {
+    return (
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        {[1, 2, 3, 4, 5, 6].map((i) => (
+          <Skeleton key={i} className="h-[200px] w-full" />
+        ))}
+      </div>
+    )
+  }
+
   return (
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
       {classes.map((classItem) => {
-        const occupancyPercentage = (classItem.students / classItem.capacity) * 100
+        const studentCount = Number(classItem.student_count || 0)
+        const occupancyPercentage = (studentCount / classItem.capacity) * 100
         const isFull = occupancyPercentage >= 100
 
         return (
@@ -77,10 +67,10 @@ export function ClassesGrid() {
             <CardHeader>
               <div className="flex items-start justify-between">
                 <div className="flex-1">
-                  <CardTitle className="text-lg">{classItem.name}</CardTitle>
-                  <CardDescription className="mt-1">{classItem.code}</CardDescription>
+                  <CardTitle className="text-lg">{classItem.class_name}</CardTitle>
+                  <CardDescription className="mt-1">{classItem.class_code}</CardDescription>
                 </div>
-                <Badge variant="outline">Grade {classItem.grade}</Badge>
+                <Badge variant="outline">Grade {classItem.grade_level}</Badge>
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -88,7 +78,7 @@ export function ClassesGrid() {
                 <div className="flex items-center gap-2 text-muted-foreground">
                   <Users className="h-4 w-4" />
                   <span>
-                    {classItem.students}/{classItem.capacity} students
+                    {studentCount}/{classItem.capacity} students
                   </span>
                   {isFull && (
                     <Badge variant="destructive" className="ml-auto text-xs">
@@ -98,12 +88,12 @@ export function ClassesGrid() {
                 </div>
                 <div className="flex items-center gap-2 text-muted-foreground">
                   <Clock className="h-4 w-4" />
-                  <span>{classItem.schedule}</span>
+                  <span>{classItem.academic_year}</span>
                 </div>
               </div>
               <div className="border-border border-t pt-4">
                 <p className="text-muted-foreground text-sm">Instructor</p>
-                <p className="font-medium text-sm">{classItem.teacher}</p>
+                <p className="font-medium text-sm">{classItem.teacher_name || "Unassigned"}</p>
               </div>
             </CardContent>
           </Card>
