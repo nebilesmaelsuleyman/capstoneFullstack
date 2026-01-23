@@ -28,7 +28,19 @@ export default function LoginPage() {
     const result = await login(email, password)
 
     if (result.success) {
-      router.push("/dashboard")
+      // Get role from localStorage since state might not have updated yet
+      const userData = JSON.parse(localStorage.getItem("user_data") || "{}")
+      const role = userData.role
+
+      if (role === "admin") {
+        router.push("/admin/dashboard")
+      } else if (role === "teacher") {
+        router.push("/teacher/dashboard")
+      } else if (role === "student") {
+        router.push("/student/dashboard")
+      } else {
+        router.push("/dashboard")
+      }
     } else {
       setError(result.error || "Login failed")
     }
