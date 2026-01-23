@@ -3,7 +3,7 @@ import { JwtAuthGuard } from "../auth/jwt-auth.guard"
 import { AnnouncementsService } from "./announcements.service"
 
 @Controller("announcements")
-@UseGuards(JwtAuthGuard)
+// @UseGuards(JwtAuthGuard)
 export class AnnouncementsController {
   constructor(private readonly announcementsService: AnnouncementsService) { }
 

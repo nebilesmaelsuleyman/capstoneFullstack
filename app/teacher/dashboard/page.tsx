@@ -169,6 +169,11 @@ export default function TeacherDashboard() {
         }
     }
 
+    const handleLogout = () => {
+        localStorage.removeItem('token')
+        window.location.href = '/'
+    }
+
     const fetchStudentsByClass = async (classId: number) => {
         try {
             const res = await fetch(`http://localhost:4000/api/students/by-class/${classId}`, {
@@ -423,11 +428,38 @@ export default function TeacherDashboard() {
                         </Card>
                     </TabsContent>
 
-                    {/* Profile */}
                     <TabsContent value="profile" className="space-y-4">
                         <Card className="border-0 bg-slate-800/50 backdrop-blur-xl shadow-xl p-6">
-                            <div className="flex items-center gap-6 mb-8"><Avatar className="h-24 w-24"><AvatarFallback className="bg-purple-600 text-3xl font-bold">{teacher?.firstName?.[0]}{teacher?.lastName?.[0]}</AvatarFallback></Avatar><div><h2 className="text-2xl font-bold text-white">{teacher?.firstName} {teacher?.lastName}</h2><p className="text-slate-400">{teacher?.email}</p></div></div>
-                            <div className="grid md:grid-cols-2 gap-4"><div className="p-4 bg-slate-700/30 rounded-lg"><Label className="text-slate-500">Department</Label><p className="font-medium text-white">{teacher?.department}</p></div><div className="p-4 bg-slate-700/30 rounded-lg"><Label className="text-slate-500">Employee ID</Label><p className="font-medium text-white">{teacher?.employeeId}</p></div><div className="p-4 bg-slate-700/30 rounded-lg"><Label className="text-slate-500">Subjects</Label><p className="font-medium text-white">{teacher?.subjects}</p></div></div>
+                            <CardHeader className="px-0 pt-0 flex flex-row items-center justify-between mb-8">
+                                <div className="flex items-center gap-6">
+                                    <Avatar className="h-24 w-24">
+                                        <AvatarFallback className="bg-purple-600 text-3xl font-bold">
+                                            {teacher?.firstName?.[0]}{teacher?.lastName?.[0]}
+                                        </AvatarFallback>
+                                    </Avatar>
+                                    <div>
+                                        <h2 className="text-2xl font-bold text-white">{teacher?.firstName} {teacher?.lastName}</h2>
+                                        <p className="text-slate-400">{teacher?.email}</p>
+                                    </div>
+                                </div>
+                                <Button onClick={handleLogout} variant="destructive" className="bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30">
+                                    Logout
+                                </Button>
+                            </CardHeader>
+                            <div className="grid md:grid-cols-2 gap-4">
+                                <div className="p-4 bg-slate-700/30 rounded-lg">
+                                    <Label className="text-slate-500">Department</Label>
+                                    <p className="font-medium text-white">{teacher?.department}</p>
+                                </div>
+                                <div className="p-4 bg-slate-700/30 rounded-lg">
+                                    <Label className="text-slate-500">Employee ID</Label>
+                                    <p className="font-medium text-white">{teacher?.employeeId}</p>
+                                </div>
+                                <div className="p-4 bg-slate-700/30 rounded-lg">
+                                    <Label className="text-slate-500">Subjects</Label>
+                                    <p className="font-medium text-white">{teacher?.subjects}</p>
+                                </div>
+                            </div>
                         </Card>
                     </TabsContent>
                 </Tabs>

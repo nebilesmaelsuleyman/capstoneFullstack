@@ -4,6 +4,8 @@ import { useEffect, useState } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Label } from "@/components/ui/label"
 import { BookOpen, Calendar, GraduationCap, TrendingUp, User, Users, Award, Sparkles, Star, Target, Bell, Megaphone, Trophy, AlertCircle, Clock, Loader2 } from "lucide-react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 
@@ -17,6 +19,22 @@ interface Grade {
     exam_date: string
     class_name?: string
     remarks?: string
+}
+
+interface Student {
+    id: number
+    student_id: string
+    first_name: string
+    last_name: string
+    email: string
+    date_of_birth: string
+    gender: string
+    address: string
+    parent_name: string
+    parent_phone: string
+    parent_email: string
+    enrollment_date: string
+    grade_level: number
 }
 
 interface Class {
@@ -79,6 +97,7 @@ export default function StudentDashboard() {
     const [timetable, setTimetable] = useState<TimetableEntry[]>([])
     const [loading, setLoading] = useState(true)
     const [studentId, setStudentId] = useState<number | null>(null)
+    const [studentInfo, setStudentInfo] = useState<Student | null>(null)
 
     const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]
     const timeSlots = [
@@ -100,7 +119,7 @@ export default function StudentDashboard() {
     const fetchStudentData = async (id: number) => {
         setLoading(true)
         try {
-            const [gradesRes, classesRes, attendanceRes, statsRes, announcementsRes] = await Promise.all([
+            const [gradesRes, classesRes, attendanceRes, statsRes, announcementsRes, studentRes] = await Promise.all([
                 fetch(`http://localhost:4000/api/grades/student/${id}`, {
                     headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
                 }),
@@ -114,6 +133,9 @@ export default function StudentDashboard() {
                     headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
                 }),
                 fetch(`http://localhost:4000/api/announcements?audience=students`, {
+                    headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+                }),
+                fetch(`http://localhost:4000/api/students/${id}`, {
                     headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
                 })
             ])
@@ -141,11 +163,20 @@ export default function StudentDashboard() {
                 const data = await announcementsRes.json()
                 setAnnouncements(data.data)
             }
+            if (studentRes.ok) {
+                const data = await studentRes.json()
+                setStudentInfo(data.data || data)
+            }
         } catch (error) {
             console.error('Error fetching student data:', error)
         } finally {
             setLoading(false)
         }
+    }
+
+    const handleLogout = () => {
+        localStorage.removeItem('token')
+        window.location.href = '/'
     }
 
     const fetchTimetable = async (classId: number) => {
@@ -234,7 +265,7 @@ export default function StudentDashboard() {
                         <Avatar className="h-20 w-20 border-4 border-white/30 shadow-xl">
                             <AvatarImage src="/placeholder-avatar.jpg" />
                             <AvatarFallback className="bg-gradient-to-br from-indigo-500 to-pink-500 text-2xl font-bold text-white">
-                                <User className="h-10 w-10" />
+                                {studentInfo ? `${studentInfo.first_name[0]}${studentInfo.last_name[0]}` : <User className="h-10 w-10" />}
                             </AvatarFallback>
                         </Avatar>
                     </div>
@@ -255,6 +286,7 @@ export default function StudentDashboard() {
                         <TabsTrigger value="grades">Grades</TabsTrigger>
                         <TabsTrigger value="classes">Classes</TabsTrigger>
                         <TabsTrigger value="attendance">Attendance</TabsTrigger>
+                        <TabsTrigger value="profile">Profile</TabsTrigger>
                     </TabsList>
 
                     {/* Announcements Tab */}
@@ -385,6 +417,86 @@ export default function StudentDashboard() {
                                 {attendanceStats && <div className="grid grid-cols-4 gap-4 mb-6 text-center"><div className="p-3 rounded-lg bg-green-500/10 text-green-400"><div className="text-xl font-bold">{attendanceStats.present}</div><div className="text-[10px]">Present</div></div><div className="p-3 rounded-lg bg-red-500/10 text-red-400"><div className="text-xl font-bold">{attendanceStats.absent}</div><div className="text-[10px]">Absent</div></div><div className="p-3 rounded-lg bg-yellow-500/10 text-yellow-400"><div className="text-xl font-bold">{attendanceStats.late}</div><div className="text-[10px]">Late</div></div><div className="p-3 rounded-lg bg-blue-500/10 text-blue-400"><div className="text-xl font-bold">{attendanceStats.excused}</div><div className="text-[10px]">Excused</div></div></div>}
                                 <div className="space-y-2">{attendance.slice(0, 10).map((r) => (<div key={r.id} className="flex justify-between items-center p-3 border border-slate-700 rounded-lg"><div><div className="text-sm font-medium text-white">{r.class_name}</div><div className="text-[10px] text-slate-500">{new Date(r.attendance_date).toLocaleDateString()}</div></div><Badge className={getAttendanceStatusColor(r.status)}>{r.status}</Badge></div>))}</div>
                             </CardContent>
+                        </Card>
+                    </TabsContent>
+
+                    <TabsContent value="profile" className="space-y-4">
+                        <Card className="border-0 bg-slate-800/50 backdrop-blur-xl shadow-xl p-6">
+                            <CardHeader className="px-0 pt-0 flex flex-row items-center justify-between">
+                                <div className="flex items-center gap-6">
+                                    <Avatar className="h-24 w-24 border-4 border-indigo-500/30">
+                                        <AvatarFallback className="bg-gradient-to-br from-indigo-500 to-pink-500 text-3xl font-bold text-white">
+                                            {studentInfo ? `${studentInfo.first_name[0]}${studentInfo.last_name[0]}` : <User className="h-12 w-12" />}
+                                        </AvatarFallback>
+                                    </Avatar>
+                                    <div>
+                                        <h2 className="text-3xl font-bold text-white tracking-tight">{studentInfo?.first_name} {studentInfo?.last_name}</h2>
+                                        <div className="flex items-center gap-2 mt-1">
+                                            <Badge variant="outline" className="border-indigo-500/50 text-indigo-400">{studentInfo?.student_id}</Badge>
+                                            <Badge className="bg-green-500/20 text-green-300 border-green-500/30">Active Student</Badge>
+                                        </div>
+                                    </div>
+                                </div>
+                                <Button onClick={handleLogout} variant="destructive" className="bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30">
+                                    Logout
+                                </Button>
+                            </CardHeader>
+
+                            <div className="grid gap-6 mt-8">
+                                <section>
+                                    <h3 className="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-4 border-b border-slate-700 pb-2">Academic Information</h3>
+                                    <div className="grid md:grid-cols-2 gap-4">
+                                        <div className="p-4 bg-slate-700/30 rounded-xl border border-slate-700/50">
+                                            <Label className="text-slate-500 text-xs font-medium">Grade Level</Label>
+                                            <p className="text-white font-semibold mt-0.5">Grade {studentInfo?.grade_level}</p>
+                                        </div>
+                                        <div className="p-4 bg-slate-700/30 rounded-xl border border-slate-700/50">
+                                            <Label className="text-slate-500 text-xs font-medium">Enrollment Date</Label>
+                                            <p className="text-white font-semibold mt-0.5">{studentInfo ? new Date(studentInfo.enrollment_date).toLocaleDateString() : 'N/A'}</p>
+                                        </div>
+                                    </div>
+                                </section>
+
+                                <section>
+                                    <h3 className="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-4 border-b border-slate-700 pb-2">Personal Details</h3>
+                                    <div className="grid md:grid-cols-3 gap-4">
+                                        <div className="p-4 bg-slate-700/30 rounded-xl border border-slate-700/50">
+                                            <Label className="text-slate-500 text-xs font-medium">Email Address</Label>
+                                            <p className="text-white font-semibold mt-0.5 break-all">{studentInfo?.email}</p>
+                                        </div>
+                                        <div className="p-4 bg-slate-700/30 rounded-xl border border-slate-700/50">
+                                            <Label className="text-slate-500 text-xs font-medium">Gender</Label>
+                                            <p className="text-white font-semibold mt-0.5 capitalize">{studentInfo?.gender}</p>
+                                        </div>
+                                        <div className="p-4 bg-slate-700/30 rounded-xl border border-slate-700/50">
+                                            <Label className="text-slate-500 text-xs font-medium">Date of Birth</Label>
+                                            <p className="text-white font-semibold mt-0.5">{studentInfo ? new Date(studentInfo.date_of_birth).toLocaleDateString() : 'N/A'}</p>
+                                        </div>
+                                    </div>
+                                    <div className="p-4 bg-slate-700/30 rounded-xl border border-slate-700/50 mt-4">
+                                        <Label className="text-slate-500 text-xs font-medium">Home Address</Label>
+                                        <p className="text-white font-semibold mt-0.5">{studentInfo?.address || 'No address provided'}</p>
+                                    </div>
+                                </section>
+
+                                <section>
+                                    <h3 className="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-4 border-b border-slate-700 pb-2">Parent/Guardian Information</h3>
+                                    <div className="grid md:grid-cols-3 gap-4">
+                                        <div className="p-4 bg-slate-700/30 rounded-xl border border-slate-700/50">
+                                            <Label className="text-slate-500 text-xs font-medium">Parent Name</Label>
+                                            <p className="text-white font-semibold mt-0.5">{studentInfo?.parent_name}</p>
+                                        </div>
+                                        <div className="p-4 bg-slate-700/30 rounded-xl border border-slate-700/50">
+                                            <Label className="text-slate-500 text-xs font-medium">Parent Phone</Label>
+                                            <p className="text-white font-semibold mt-0.5">{studentInfo?.parent_phone}</p>
+                                        </div>
+                                        <div className="p-4 bg-slate-700/30 rounded-xl border border-slate-700/50">
+                                            <Label className="text-slate-500 text-xs font-medium">Parent Email</Label>
+                                            <p className="text-white font-semibold mt-0.5 break-all">{studentInfo?.parent_email}</p>
+                                        </div>
+                                    </div>
+                                </section>
+                            </div>
                         </Card>
                     </TabsContent>
                 </Tabs>

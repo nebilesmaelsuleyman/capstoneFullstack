@@ -1,14 +1,14 @@
-import { Controller, Get, Post, Param, Query, UseGuards, HttpException, HttpStatus } from "@nestjs/common"
+import { Controller, Get, Post, Param, Query, Body, UseGuards, HttpException, HttpStatus } from "@nestjs/common"
 import { JwtAuthGuard } from "../auth/jwt-auth.guard"
-import  { AttendanceService } from "./attendance.service"
+import { AttendanceService } from "./attendance.service"
 
 @Controller("attendance")
 @UseGuards(JwtAuthGuard)
 export class AttendanceController {
-  constructor(private readonly attendanceService: AttendanceService) {}
+  constructor(private readonly attendanceService: AttendanceService) { }
 
   @Post()
-  async markAttendance(body: any) {
+  async markAttendance(@Body() body: any) {
     try {
       const result = await this.attendanceService.markAttendance(body)
       return { success: true, data: result }
@@ -18,7 +18,7 @@ export class AttendanceController {
   }
 
   @Post("bulk")
-  async markBulkAttendance(body: { classId: number; date: string; records: any[] }) {
+  async markBulkAttendance(@Body() body: { classId: number; date: string; records: any[] }) {
     try {
       const result = await this.attendanceService.markBulkAttendance(body.classId, body.date, body.records)
       return { success: true, data: result }

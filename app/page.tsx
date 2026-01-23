@@ -21,7 +21,7 @@ export default function LandingPage() {
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-600 to-purple-600 shadow-lg shadow-indigo-500/20">
               <GraduationCap className="h-6 w-6 text-white" />
             </div>
-            <span className="text-xl font-bold tracking-tight text-white">EduPulse</span>
+            <span className="text-xl font-bold tracking-tight text-white">MY SCHOOL</span>
           </div>
 
           <nav className="hidden items-center gap-8 md:flex">
@@ -43,7 +43,7 @@ export default function LandingPage() {
             ) : (
               <>
                 <Link href="/login" className="hidden text-sm font-medium text-slate-400 transition-colors hover:text-white sm:block">
-                  Sign In
+                  Login
                 </Link>
                 <Link href="/login">
                   <Button className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white hover:shadow-lg hover:shadow-indigo-500/25 transition-all">
@@ -62,8 +62,8 @@ export default function LandingPage() {
           <div className="container relative mx-auto px-4 sm:px-6">
             <div className="flex flex-col items-center justify-center text-center">
               <div className="mb-8 flex items-center gap-2 rounded-full border border-indigo-500/30 bg-indigo-500/10 px-4 py-1.5 text-sm font-medium text-indigo-400 backdrop-blur-md animate-in fade-in slide-in-from-bottom-3 duration-1000">
-                <Sparkles className="h-4 w-4" />
-                <span>Modern School Management Reimagined</span>
+
+                <span>Modern School Management </span>
               </div>
 
               <h1 className="max-w-4xl text-5xl font-extrabold tracking-tight text-white sm:text-7xl lg:leading-[1.1] animate-in fade-in slide-in-from-bottom-5 duration-1000 delay-150">
