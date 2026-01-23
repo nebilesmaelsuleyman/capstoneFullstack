@@ -37,6 +37,39 @@ export class ClassesService {
     return result.rows[0]
   }
 
+  async findByStudent(studentId: number) {
+    const result = await this.pool.query(
+      `SELECT c.*, 
+              u.first_name || ' ' || u.last_name as teacher_name,
+              sc.enrollment_date,
+              sc.status as enrollment_status
+       FROM classes c
+       INNER JOIN student_classes sc ON c.id = sc.class_id
+       LEFT JOIN teachers t ON c.teacher_id = t.id
+       LEFT JOIN users u ON t.user_id = u.id
+       WHERE sc.student_id = $1 AND sc.status = 'active'
+       ORDER BY c.grade_level, c.section`,
+      [studentId],
+    )
+
+    return result.rows
+  }
+
+  async findByTeacher(teacherId: number) {
+    const result = await this.pool.query(
+      `SELECT c.*, 
+              COUNT(DISTINCT sc.student_id) as student_count
+       FROM classes c
+       LEFT JOIN student_classes sc ON c.id = sc.class_id AND sc.status = 'active'
+       WHERE c.teacher_id = $1
+       GROUP BY c.id
+       ORDER BY c.grade_level, c.section`,
+      [teacherId],
+    )
+
+    return result.rows
+  }
+
   async create(createClassDto: any) {
     const { class_name, class_code, grade_level, section, teacher_id, room_number, capacity, academic_year } = createClassDto;
 

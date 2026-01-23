@@ -1,19 +1,52 @@
-import { Controller, Get, Post, UseGuards } from "@nestjs/common"
-import  { GradesService } from "./grades.service"
+import { Controller, Get, Post, Put, Body, Param, Query, UseGuards, HttpException, HttpStatus } from "@nestjs/common"
+import { GradesService } from "./grades.service"
 import { JwtAuthGuard } from "../auth/jwt-auth.guard"
 
 @Controller("grades")
 @UseGuards(JwtAuthGuard)
 export class GradesController {
-  constructor(private readonly gradesService: GradesService) {}
+  constructor(private readonly gradesService: GradesService) { }
 
   @Get("student/:id")
-  findByStudent(id: string) {
-    return this.gradesService.findByStudent(id)
+  async findByStudent(@Param('id') id: string) {
+    try {
+      const result = await this.gradesService.findByStudent(id)
+      return { success: true, data: result }
+    } catch (error) {
+      throw new HttpException(error.message, HttpStatus.BAD_REQUEST)
+    }
+  }
+
+  @Get("class/:classId/subject/:subjectId")
+  async getGradesByClassAndSubject(
+    @Param('classId') classId: string,
+    @Param('subjectId') subjectId: string
+  ) {
+    try {
+      const result = await this.gradesService.getGradesByClassAndSubject(classId, subjectId)
+      return { success: true, data: result }
+    } catch (error) {
+      throw new HttpException(error.message, HttpStatus.BAD_REQUEST)
+    }
   }
 
   @Post()
-  upsert(data: any) {
-    return this.gradesService.upsert(data)
+  async create(@Body() data: any) {
+    try {
+      const result = await this.gradesService.create(data)
+      return { success: true, data: result }
+    } catch (error) {
+      throw new HttpException(error.message, HttpStatus.BAD_REQUEST)
+    }
+  }
+
+  @Put(":id")
+  async update(@Param('id') id: string, @Body() data: any) {
+    try {
+      const result = await this.gradesService.update(id, data)
+      return { success: true, data: result }
+    } catch (error) {
+      throw new HttpException(error.message, HttpStatus.BAD_REQUEST)
+    }
   }
 }

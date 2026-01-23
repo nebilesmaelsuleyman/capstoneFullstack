@@ -19,17 +19,17 @@ import {
 } from "lucide-react"
 
 const navigation = [
-  { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-  { name: "Students", href: "/students", icon: Users },
-  { name: "Teachers", href: "/teachers", icon: GraduationCap },
-  { name: "Classes", href: "/classes", icon: BookOpen },
+  { name: "Dashboard", href: "/admin/dashboard", icon: LayoutDashboard },
+  { name: "Students", href: "/admin/students", icon: Users },
+  { name: "Teachers", href: "/admin/teachers", icon: GraduationCap },
+  { name: "Classes", href: "/admin/classes", icon: BookOpen },
   { name: "Attendance", href: "/attendance", icon: ClipboardCheck },
-  { name: "Exams", href: "/exams", icon: ClipboardList },
-  { name: "Timetable", href: "/timetable", icon: Calendar },
-  { name: "Announcements", href: "/announcements", icon: Megaphone },
-  { name: "Fees", href: "/fees", icon: DollarSign },
-  { name: "Library", href: "/library", icon: BookMarked },
-  { name: "Settings", href: "/settings", icon: Settings },
+  { name: "Exams", href: "/admin/exams", icon: ClipboardList },
+  { name: "Timetable", href: "/admin/timetable", icon: Calendar },
+  { name: "Announcements", href: "/admin/announcements", icon: Megaphone },
+  { name: "Fees", href: "/admin/fees", icon: DollarSign },
+  { name: "Library", href: "/admin/library", icon: BookMarked },
+  { name: "Settings", href: "/admin/settings", icon: Settings },
 ]
 
 export function DashboardNav() {
