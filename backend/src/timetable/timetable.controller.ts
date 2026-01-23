@@ -1,14 +1,14 @@
-import { Controller, Get, Post, Delete, Param, UseGuards, HttpException, HttpStatus } from "@nestjs/common"
+import { Controller, Get, Post, Delete, Param, UseGuards, HttpException, HttpStatus, Body } from "@nestjs/common"
 import { JwtAuthGuard } from "../auth/jwt-auth.guard"
-import  { TimetableService } from "./timetable.service"
+import { TimetableService } from "./timetable.service"
 
 @Controller("timetable")
-// @UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard)
 export class TimetableController {
-  constructor(private readonly timetableService: TimetableService) {}
+  constructor(private readonly timetableService: TimetableService) { }
 
   @Post()
-  async createTimetableEntry(body: any) {
+  async createTimetableEntry(@Body() body: any) {
     try {
       const result = await this.timetableService.createTimetableEntry(body)
       return { success: true, data: result }

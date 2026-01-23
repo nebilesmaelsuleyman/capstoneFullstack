@@ -1,14 +1,14 @@
-import { Controller, Get, Post, Delete, UseGuards, HttpException, HttpStatus } from "@nestjs/common"
+import { Controller, Get, Post, Delete, UseGuards, HttpException, HttpStatus, Body, Query, Param } from "@nestjs/common"
 import { JwtAuthGuard } from "../auth/jwt-auth.guard"
-import  { AnnouncementsService } from "./announcements.service"
+import { AnnouncementsService } from "./announcements.service"
 
 @Controller("announcements")
 @UseGuards(JwtAuthGuard)
 export class AnnouncementsController {
-  constructor(private readonly announcementsService: AnnouncementsService) {}
+  constructor(private readonly announcementsService: AnnouncementsService) { }
 
   @Post()
-  async createAnnouncement(body: any) {
+  async createAnnouncement(@Body() body: any) {
     try {
       const result = await this.announcementsService.createAnnouncement(body)
       return { success: true, data: result }
@@ -18,7 +18,7 @@ export class AnnouncementsController {
   }
 
   @Get()
-  async getAnnouncements(query: any) {
+  async getAnnouncements(@Query() query: any) {
     try {
       const result = await this.announcementsService.getAnnouncements(query)
       return { success: true, data: result }
@@ -28,7 +28,7 @@ export class AnnouncementsController {
   }
 
   @Get(":id")
-  async getAnnouncementById(id: number) {
+  async getAnnouncementById(@Param("id") id: number) {
     try {
       const result = await this.announcementsService.getAnnouncementById(id)
       return { success: true, data: result }
@@ -38,7 +38,7 @@ export class AnnouncementsController {
   }
 
   @Delete(":id")
-  async deleteAnnouncement(id: number) {
+  async deleteAnnouncement(@Param("id") id: number) {
     try {
       await this.announcementsService.deleteAnnouncement(id)
       return { success: true }

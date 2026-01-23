@@ -4,7 +4,7 @@ import { useEffect, useState } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
-import { BookOpen, Calendar, GraduationCap, TrendingUp, User, Users, Award, Sparkles, Star, Target } from "lucide-react"
+import { BookOpen, Calendar, GraduationCap, TrendingUp, User, Users, Award, Sparkles, Star, Target, Bell, Megaphone, Trophy, AlertCircle, Clock, Loader2 } from "lucide-react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 
 interface Grade {
@@ -47,13 +47,49 @@ interface AttendanceStats {
     percentage: number
 }
 
+interface Announcement {
+    id: number
+    title: string
+    content: string
+    announcement_type: string
+    target_audience: string
+    posted_by_first_name?: string
+    posted_by_last_name?: string
+    posted_at: string
+    priority: string
+}
+
+interface TimetableEntry {
+    id: number
+    day_of_week: string
+    start_time: string
+    end_time: string
+    room_number: string
+    subject_name: string
+    teacher_first_name?: string
+    teacher_last_name?: string
+}
+
 export default function StudentDashboard() {
     const [grades, setGrades] = useState<Grade[]>([])
     const [classes, setClasses] = useState<Class[]>([])
     const [attendance, setAttendance] = useState<Attendance[]>([])
     const [attendanceStats, setAttendanceStats] = useState<AttendanceStats | null>(null)
+    const [announcements, setAnnouncements] = useState<Announcement[]>([])
+    const [timetable, setTimetable] = useState<TimetableEntry[]>([])
     const [loading, setLoading] = useState(true)
     const [studentId, setStudentId] = useState<number | null>(null)
+
+    const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]
+    const timeSlots = [
+        { start: "08:00", end: "09:00" },
+        { start: "09:00", end: "10:00" },
+        { start: "10:00", end: "11:00" },
+        { start: "11:00", end: "12:00" },
+        { start: "12:00", end: "13:00" },
+        { start: "13:00", end: "14:00" },
+        { start: "14:00", end: "15:00" },
+    ]
 
     useEffect(() => {
         const mockStudentId = 1
@@ -64,49 +100,65 @@ export default function StudentDashboard() {
     const fetchStudentData = async (id: number) => {
         setLoading(true)
         try {
-            const gradesRes = await fetch(`http://localhost:3001/grades/student/${id}`, {
-                headers: {
-                    'Authorization': `Bearer ${localStorage.getItem('token')}`
-                }
-            })
+            const [gradesRes, classesRes, attendanceRes, statsRes, announcementsRes] = await Promise.all([
+                fetch(`http://localhost:4000/api/grades/student/${id}`, {
+                    headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+                }),
+                fetch(`http://localhost:4000/api/classes/student/${id}`, {
+                    headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+                }),
+                fetch(`http://localhost:4000/api/attendance/student/${id}`, {
+                    headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+                }),
+                fetch(`http://localhost:4000/api/attendance/statistics/${id}`, {
+                    headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+                }),
+                fetch(`http://localhost:4000/api/announcements?audience=students`, {
+                    headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+                })
+            ])
+
             if (gradesRes.ok) {
-                const gradesData = await gradesRes.json()
-                setGrades(gradesData.data || gradesData)
+                const data = await gradesRes.json()
+                setGrades(data.data || data)
             }
-
-            const classesRes = await fetch(`http://localhost:3001/classes/student/${id}`, {
-                headers: {
-                    'Authorization': `Bearer ${localStorage.getItem('token')}`
-                }
-            })
             if (classesRes.ok) {
-                const classesData = await classesRes.json()
-                setClasses(classesData)
-            }
-
-            const attendanceRes = await fetch(`http://localhost:3001/attendance/student/${id}`, {
-                headers: {
-                    'Authorization': `Bearer ${localStorage.getItem('token')}`
+                const data = await classesRes.json()
+                setClasses(data)
+                if (data.length > 0) {
+                    fetchTimetable(data[0].id)
                 }
-            })
+            }
             if (attendanceRes.ok) {
-                const attendanceData = await attendanceRes.json()
-                setAttendance(attendanceData.data || [])
+                const data = await attendanceRes.json()
+                setAttendance(data.data || [])
             }
-
-            const statsRes = await fetch(`http://localhost:3001/attendance/statistics/${id}`, {
-                headers: {
-                    'Authorization': `Bearer ${localStorage.getItem('token')}`
-                }
-            })
             if (statsRes.ok) {
-                const statsData = await statsRes.json()
-                setAttendanceStats(statsData.data)
+                const data = await statsRes.json()
+                setAttendanceStats(data.data)
+            }
+            if (announcementsRes.ok) {
+                const data = await announcementsRes.json()
+                setAnnouncements(data.data)
             }
         } catch (error) {
             console.error('Error fetching student data:', error)
         } finally {
             setLoading(false)
+        }
+    }
+
+    const fetchTimetable = async (classId: number) => {
+        try {
+            const res = await fetch(`http://localhost:4000/api/timetable/class/${classId}`, {
+                headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+            })
+            if (res.ok) {
+                const data = await res.json()
+                setTimetable(data.data)
+            }
+        } catch (error) {
+            console.error('Error fetching timetable:', error)
         }
     }
 
@@ -128,16 +180,21 @@ export default function StudentDashboard() {
 
     const getAttendanceStatusColor = (status: string) => {
         switch (status.toLowerCase()) {
-            case 'present':
-                return 'bg-green-500/20 text-green-300 border-green-500/30'
-            case 'absent':
-                return 'bg-red-500/20 text-red-300 border-red-500/30'
-            case 'late':
-                return 'bg-yellow-500/20 text-yellow-300 border-yellow-500/30'
-            case 'excused':
-                return 'bg-blue-500/20 text-blue-300 border-blue-500/30'
-            default:
-                return 'bg-slate-500/20 text-slate-300 border-slate-500/30'
+            case 'present': return 'bg-green-500/20 text-green-300 border-green-500/30'
+            case 'absent': return 'bg-red-500/20 text-red-300 border-red-500/30'
+            case 'late': return 'bg-yellow-500/20 text-yellow-300 border-yellow-500/30'
+            case 'excused': return 'bg-blue-500/20 text-blue-300 border-blue-500/30'
+            default: return 'bg-slate-500/20 text-slate-300 border-slate-500/30'
+        }
+    }
+
+    const getAnnouncementIcon = (type: string) => {
+        switch (type) {
+            case "general": return <Bell className="h-5 w-5" />
+            case "academic": return <AlertCircle className="h-5 w-5" />
+            case "event": return <Trophy className="h-5 w-5" />
+            case "holiday": return <Calendar className="h-5 w-5" />
+            default: return <Megaphone className="h-5 w-5" />
         }
     }
 
@@ -163,24 +220,16 @@ export default function StudentDashboard() {
     return (
         <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 p-6">
             <div className="mx-auto max-w-7xl space-y-6">
-                {/* Header with Gradient */}
+                {/* Header Section */}
                 <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 p-8 shadow-2xl">
                     <div className="absolute inset-0 bg-black/20"></div>
-                    <div className="absolute -right-10 -top-10 h-40 w-40 rounded-full bg-white/10 blur-3xl"></div>
-                    <div className="absolute -bottom-10 -left-10 h-40 w-40 rounded-full bg-white/10 blur-3xl"></div>
                     <div className="relative flex items-center justify-between">
                         <div className="space-y-2">
                             <div className="flex items-center gap-3">
                                 <Star className="h-8 w-8 text-yellow-300 animate-pulse" />
                                 <h1 className="text-4xl font-bold tracking-tight text-white">Student Dashboard</h1>
                             </div>
-                            <p className="text-lg text-purple-100">
-                                Welcome back! Here's your academic overview
-                            </p>
-                            <div className="flex items-center gap-2 text-sm text-purple-200">
-                                <Target className="h-4 w-4" />
-                                <span>Keep up the great work!</span>
-                            </div>
+                            <p className="text-lg text-purple-100">Welcome back! Here's your academic overview</p>
                         </div>
                         <Avatar className="h-20 w-20 border-4 border-white/30 shadow-xl">
                             <AvatarImage src="/placeholder-avatar.jpg" />
@@ -191,272 +240,150 @@ export default function StudentDashboard() {
                     </div>
                 </div>
 
-                {/* Stats Cards with Glassmorphism */}
+                {/* Stats Cards */}
                 <div className="grid gap-4 md:grid-cols-4">
-                    <Card className="border-0 bg-gradient-to-br from-indigo-500/10 to-indigo-600/10 backdrop-blur-xl shadow-xl hover:scale-105 transition-transform">
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium text-indigo-300">Total Classes</CardTitle>
-                            <div className="rounded-full bg-indigo-500/20 p-2">
-                                <BookOpen className="h-5 w-5 text-indigo-400" />
-                            </div>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="text-3xl font-bold text-white">{classes.length}</div>
-                            <p className="text-xs text-indigo-300">Active enrollments</p>
-                        </CardContent>
-                    </Card>
-
-                    <Card className="border-0 bg-gradient-to-br from-green-500/10 to-green-600/10 backdrop-blur-xl shadow-xl hover:scale-105 transition-transform">
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium text-green-300">Attendance Rate</CardTitle>
-                            <div className="rounded-full bg-green-500/20 p-2">
-                                <Calendar className="h-5 w-5 text-green-400" />
-                            </div>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="text-3xl font-bold text-white">
-                                {attendanceStats ? `${attendanceStats.percentage.toFixed(1)}%` : 'N/A'}
-                            </div>
-                            <p className="text-xs text-green-300">
-                                {attendanceStats ? `${attendanceStats.present}/${attendanceStats.total} days` : 'No data'}
-                            </p>
-                        </CardContent>
-                    </Card>
-
-                    <Card className="border-0 bg-gradient-to-br from-purple-500/10 to-purple-600/10 backdrop-blur-xl shadow-xl hover:scale-105 transition-transform">
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium text-purple-300">Average Grade</CardTitle>
-                            <div className="rounded-full bg-purple-500/20 p-2">
-                                <TrendingUp className="h-5 w-5 text-purple-400" />
-                            </div>
-                        </CardHeader>
-                        <CardContent>
-                            <div className={`text-3xl font-bold ${getGradeColor(averageGrade)}`}>
-                                {averageGrade > 0 ? `${averageGrade.toFixed(1)}%` : 'N/A'}
-                            </div>
-                            <p className="text-xs text-purple-300">Across all subjects</p>
-                        </CardContent>
-                    </Card>
-
-                    <Card className="border-0 bg-gradient-to-br from-pink-500/10 to-pink-600/10 backdrop-blur-xl shadow-xl hover:scale-105 transition-transform">
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium text-pink-300">Total Grades</CardTitle>
-                            <div className="rounded-full bg-pink-500/20 p-2">
-                                <GraduationCap className="h-5 w-5 text-pink-400" />
-                            </div>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="text-3xl font-bold text-white">{grades.length}</div>
-                            <p className="text-xs text-pink-300">Recorded assessments</p>
-                        </CardContent>
-                    </Card>
+                    <Card className="border-0 bg-indigo-500/10 backdrop-blur-xl shadow-xl hover:scale-105 transition-transform"><CardHeader className="flex flex-row items-center justify-between pb-2"><CardTitle className="text-sm font-medium text-indigo-300">Total Classes</CardTitle><BookOpen className="h-5 w-5 text-indigo-400" /></CardHeader><CardContent><div className="text-3xl font-bold text-white">{classes.length}</div><p className="text-xs text-indigo-300">Active enrollments</p></CardContent></Card>
+                    <Card className="border-0 bg-green-500/10 backdrop-blur-xl shadow-xl hover:scale-105 transition-transform"><CardHeader className="flex flex-row items-center justify-between pb-2"><CardTitle className="text-sm font-medium text-green-300">Attendance Rate</CardTitle><Calendar className="h-5 w-5 text-green-400" /></CardHeader><CardContent><div className="text-3xl font-bold text-white">{attendanceStats ? `${attendanceStats.percentage.toFixed(1)}%` : 'N/A'}</div><p className="text-xs text-green-300">{attendanceStats ? `${attendanceStats.present}/${attendanceStats.total} days` : 'No data'}</p></CardContent></Card>
+                    <Card className="border-0 bg-purple-500/10 backdrop-blur-xl shadow-xl hover:scale-105 transition-transform"><CardHeader className="flex flex-row items-center justify-between pb-2"><CardTitle className="text-sm font-medium text-purple-300">Average Grade</CardTitle><TrendingUp className="h-5 w-5 text-purple-400" /></CardHeader><CardContent><div className={`text-3xl font-bold ${getGradeColor(averageGrade)}`}>{averageGrade > 0 ? `${averageGrade.toFixed(1)}%` : 'N/A'}</div><p className="text-xs text-purple-300">Across all subjects</p></CardContent></Card>
+                    <Card className="border-0 bg-pink-500/10 backdrop-blur-xl shadow-xl hover:scale-105 transition-transform"><CardHeader className="flex flex-row items-center justify-between pb-2"><CardTitle className="text-sm font-medium text-pink-300">Announcements</CardTitle><Megaphone className="h-5 w-5 text-pink-400" /></CardHeader><CardContent><div className="text-3xl font-bold text-white">{announcements.length}</div><p className="text-xs text-pink-300">Latest updates</p></CardContent></Card>
                 </div>
 
-                {/* Main Content Tabs */}
-                <Tabs defaultValue="grades" className="space-y-4">
-                    <TabsList className="grid w-full grid-cols-3 bg-slate-800/50 backdrop-blur-xl border border-slate-700">
-                        <TabsTrigger value="grades" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-indigo-600 data-[state=active]:to-purple-600 data-[state=active]:text-white">
-                            Grades
-                        </TabsTrigger>
-                        <TabsTrigger value="classes" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-indigo-600 data-[state=active]:to-purple-600 data-[state=active]:text-white">
-                            Classes
-                        </TabsTrigger>
-                        <TabsTrigger value="attendance" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-indigo-600 data-[state=active]:to-purple-600 data-[state=active]:text-white">
-                            Attendance
-                        </TabsTrigger>
+                <Tabs defaultValue="announcements" className="space-y-4">
+                    <TabsList className="grid w-full grid-cols-5 bg-slate-800/50 backdrop-blur-xl border border-slate-700">
+                        <TabsTrigger value="announcements">Announcements</TabsTrigger>
+                        <TabsTrigger value="timetable">Timetable</TabsTrigger>
+                        <TabsTrigger value="grades">Grades</TabsTrigger>
+                        <TabsTrigger value="classes">Classes</TabsTrigger>
+                        <TabsTrigger value="attendance">Attendance</TabsTrigger>
                     </TabsList>
 
-                    {/* Grades Tab */}
-                    <TabsContent value="grades" className="space-y-4">
+                    {/* Announcements Tab */}
+                    <TabsContent value="announcements" className="space-y-4">
                         <Card className="border-0 bg-slate-800/50 backdrop-blur-xl shadow-xl">
-                            <CardHeader>
-                                <CardTitle className="text-white flex items-center gap-2">
-                                    <Award className="h-6 w-6 text-yellow-400" />
-                                    My Grades
-                                </CardTitle>
-                                <CardDescription className="text-slate-400">View all your subject grades and assessments</CardDescription>
-                            </CardHeader>
+                            <CardHeader><CardTitle className="text-white">Recent Announcements</CardTitle></CardHeader>
                             <CardContent>
-                                {grades.length === 0 ? (
-                                    <div className="py-12 text-center">
-                                        <GraduationCap className="mx-auto h-12 w-12 text-slate-600" />
-                                        <p className="mt-4 text-slate-400">No grades recorded yet</p>
-                                    </div>
+                                {announcements.length === 0 ? (
+                                    <div className="py-12 text-center text-slate-400"><Megaphone className="mx-auto h-12 w-12 text-slate-600 mb-4" />No new announcements</div>
                                 ) : (
-                                    <div className="space-y-3">
-                                        {grades.map((grade) => {
-                                            const percentage = (grade.grade / grade.max_grade) * 100
-                                            return (
-                                                <div
-                                                    key={grade.id}
-                                                    className="group relative overflow-hidden rounded-xl border border-slate-700 bg-gradient-to-r from-slate-800/50 to-slate-700/50 p-5 transition-all hover:scale-[1.02] hover:shadow-2xl hover:border-purple-500/50"
-                                                >
-                                                    <div className="absolute inset-0 bg-gradient-to-r from-purple-600/0 via-purple-600/5 to-pink-600/0 opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                                                    <div className="relative flex items-center justify-between">
-                                                        <div className="space-y-2 flex-1">
-                                                            <div className="flex items-center gap-3">
-                                                                <h3 className="font-semibold text-lg text-white">{grade.subject_name}</h3>
-                                                                <Badge variant="outline" className="border-slate-600 text-slate-300">{grade.subject_code}</Badge>
-                                                                <Badge className={`${getGradeBadgeColor(percentage)} text-white border-0`}>
-                                                                    {grade.exam_type}
-                                                                </Badge>
-                                                            </div>
-                                                            <div className="flex items-center gap-4 text-sm text-slate-400">
-                                                                {grade.class_name && (
-                                                                    <>
-                                                                        <span className="flex items-center gap-1">
-                                                                            <BookOpen className="h-3 w-3" />
-                                                                            {grade.class_name}
-                                                                        </span>
-                                                                        <span>•</span>
-                                                                    </>
-                                                                )}
-                                                                <span className="flex items-center gap-1">
-                                                                    <Calendar className="h-3 w-3" />
-                                                                    {new Date(grade.exam_date).toLocaleDateString()}
-                                                                </span>
-                                                            </div>
-                                                            {grade.remarks && (
-                                                                <p className="text-sm text-slate-400 italic">"{grade.remarks}"</p>
-                                                            )}
+                                    <div className="space-y-4">
+                                        {announcements.map((a) => (
+                                            <div key={a.id} className="p-4 rounded-xl border border-slate-700 bg-slate-800/30">
+                                                <div className="flex items-start gap-4">
+                                                    <div className="p-2 rounded-full bg-indigo-500/20 text-indigo-400">{getAnnouncementIcon(a.announcement_type)}</div>
+                                                    <div className="flex-1">
+                                                        <div className="flex justify-between items-start mb-1">
+                                                            <h3 className="font-semibold text-white">{a.title}</h3>
+                                                            <Badge variant="outline" className="capitalize text-[10px]">{a.priority}</Badge>
                                                         </div>
-                                                        <div className="text-right ml-6">
-                                                            <div className={`text-4xl font-bold ${getGradeColor(percentage)}`}>
-                                                                {percentage.toFixed(1)}%
-                                                            </div>
-                                                            <div className="text-sm text-slate-400 mt-1">
-                                                                {grade.grade}/{grade.max_grade}
-                                                            </div>
+                                                        <p className="text-sm text-slate-400 whitespace-pre-wrap">{a.content}</p>
+                                                        <div className="mt-2 flex items-center gap-2 text-xs text-slate-500">
+                                                            <span>By {a.posted_by_first_name} {a.posted_by_last_name}</span>
+                                                            <span>•</span>
+                                                            <span>{new Date(a.posted_at).toLocaleDateString()}</span>
                                                         </div>
                                                     </div>
                                                 </div>
-                                            )
-                                        })}
-                                    </div>
-                                )}
-                            </CardContent>
-                        </Card>
-                    </TabsContent>
-
-                    {/* Classes Tab */}
-                    <TabsContent value="classes" className="space-y-4">
-                        <Card className="border-0 bg-slate-800/50 backdrop-blur-xl shadow-xl">
-                            <CardHeader>
-                                <CardTitle className="text-white flex items-center gap-2">
-                                    <BookOpen className="h-6 w-6 text-blue-400" />
-                                    My Classes
-                                </CardTitle>
-                                <CardDescription className="text-slate-400">Your enrolled classes for this semester</CardDescription>
-                            </CardHeader>
-                            <CardContent>
-                                {classes.length === 0 ? (
-                                    <div className="py-12 text-center">
-                                        <BookOpen className="mx-auto h-12 w-12 text-slate-600" />
-                                        <p className="mt-4 text-slate-400">No classes enrolled</p>
-                                    </div>
-                                ) : (
-                                    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                                        {classes.map((classItem) => (
-                                            <Card key={classItem.id} className="group overflow-hidden border-0 bg-gradient-to-br from-slate-700/50 to-slate-800/50 backdrop-blur-xl transition-all hover:scale-105 hover:shadow-2xl">
-                                                <div className="h-2 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500" />
-                                                <CardHeader>
-                                                    <div className="flex items-start justify-between">
-                                                        <div>
-                                                            <CardTitle className="text-lg text-white">{classItem.class_name}</CardTitle>
-                                                            <CardDescription className="text-slate-400">{classItem.class_code}</CardDescription>
-                                                        </div>
-                                                        <Badge className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white border-0">
-                                                            Grade {classItem.grade_level}
-                                                        </Badge>
-                                                    </div>
-                                                </CardHeader>
-                                                <CardContent className="space-y-3">
-                                                    <div className="flex items-center gap-2 text-sm text-slate-300">
-                                                        <User className="h-4 w-4 text-purple-400" />
-                                                        <span>{classItem.teacher_name}</span>
-                                                    </div>
-                                                    <div className="flex items-center gap-2 text-sm text-slate-300">
-                                                        <BookOpen className="h-4 w-4 text-blue-400" />
-                                                        <span>Room {classItem.room_number}</span>
-                                                    </div>
-                                                    <div className="flex items-center gap-2 text-sm text-slate-400">
-                                                        <Calendar className="h-4 w-4" />
-                                                        <span>Enrolled: {new Date(classItem.enrollment_date).toLocaleDateString()}</span>
-                                                    </div>
-                                                </CardContent>
-                                            </Card>
-                                        ))}
-                                    </div>
-                                )}
-                            </CardContent>
-                        </Card>
-                    </TabsContent>
-
-                    {/* Attendance Tab */}
-                    <TabsContent value="attendance" className="space-y-4">
-                        <Card className="border-0 bg-slate-800/50 backdrop-blur-xl shadow-xl">
-                            <CardHeader>
-                                <CardTitle className="text-white flex items-center gap-2">
-                                    <Calendar className="h-6 w-6 text-green-400" />
-                                    Attendance Record
-                                </CardTitle>
-                                <CardDescription className="text-slate-400">Your attendance history and statistics</CardDescription>
-                            </CardHeader>
-                            <CardContent>
-                                {attendanceStats && (
-                                    <div className="mb-6 grid gap-4 md:grid-cols-4">
-                                        <div className="rounded-lg bg-green-500/10 border border-green-500/30 p-4">
-                                            <div className="text-2xl font-bold text-green-400">{attendanceStats.present}</div>
-                                            <div className="text-xs text-green-300">Present</div>
-                                        </div>
-                                        <div className="rounded-lg bg-red-500/10 border border-red-500/30 p-4">
-                                            <div className="text-2xl font-bold text-red-400">{attendanceStats.absent}</div>
-                                            <div className="text-xs text-red-300">Absent</div>
-                                        </div>
-                                        <div className="rounded-lg bg-yellow-500/10 border border-yellow-500/30 p-4">
-                                            <div className="text-2xl font-bold text-yellow-400">{attendanceStats.late}</div>
-                                            <div className="text-xs text-yellow-300">Late</div>
-                                        </div>
-                                        <div className="rounded-lg bg-blue-500/10 border border-blue-500/30 p-4">
-                                            <div className="text-2xl font-bold text-blue-400">{attendanceStats.excused}</div>
-                                            <div className="text-xs text-blue-300">Excused</div>
-                                        </div>
-                                    </div>
-                                )}
-
-                                {attendance.length === 0 ? (
-                                    <div className="py-12 text-center">
-                                        <Calendar className="mx-auto h-12 w-12 text-slate-600" />
-                                        <p className="mt-4 text-slate-400">No attendance records</p>
-                                    </div>
-                                ) : (
-                                    <div className="space-y-2">
-                                        {attendance.slice(0, 20).map((record) => (
-                                            <div
-                                                key={record.id}
-                                                className="flex items-center justify-between rounded-lg border border-slate-700 bg-slate-800/50 p-4 transition-all hover:bg-slate-700/50"
-                                            >
-                                                <div className="space-y-1">
-                                                    <div className="font-medium text-white">{record.class_name}</div>
-                                                    <div className="text-sm text-slate-400">
-                                                        {new Date(record.attendance_date).toLocaleDateString('en-US', {
-                                                            weekday: 'long',
-                                                            year: 'numeric',
-                                                            month: 'long',
-                                                            day: 'numeric'
-                                                        })}
-                                                    </div>
-                                                    {record.remarks && (
-                                                        <p className="text-sm text-slate-500 italic">"{record.remarks}"</p>
-                                                    )}
-                                                </div>
-                                                <Badge className={`${getAttendanceStatusColor(record.status)} border capitalize`}>
-                                                    {record.status}
-                                                </Badge>
                                             </div>
                                         ))}
                                     </div>
                                 )}
+                            </CardContent>
+                        </Card>
+                    </TabsContent>
+
+                    {/* Timetable Tab */}
+                    <TabsContent value="timetable" className="space-y-4">
+                        <Card className="border-0 bg-slate-800/50 backdrop-blur-xl shadow-xl">
+                            <CardHeader><CardTitle className="text-white">Weekly Schedule</CardTitle></CardHeader>
+                            <CardContent>
+                                <div className="overflow-x-auto">
+                                    <div className="grid grid-cols-6 gap-2 min-w-[800px]">
+                                        <div className="space-y-2">
+                                            <div className="h-10 flex items-center justify-center font-bold text-slate-400 text-xs">TIME</div>
+                                            {timeSlots.map((slot, i) => (
+                                                <div key={i} className="h-20 flex flex-col items-center justify-center rounded-lg border border-slate-700 bg-slate-800/40 text-[10px] text-slate-400">
+                                                    <Clock className="h-3 w-3 mb-1" />
+                                                    <span>{slot.start}</span>
+                                                    <span>{slot.end}</span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                        {days.map((day) => (
+                                            <div key={day} className="space-y-2">
+                                                <div className="h-10 flex items-center justify-center font-bold text-indigo-400 text-xs uppercase tracking-wider">{day}</div>
+                                                {timeSlots.map((slot, i) => {
+                                                    const entry = timetable.find(e => e.day_of_week === day && e.start_time.startsWith(slot.start))
+                                                    return (
+                                                        <div key={i} className="h-20 rounded-lg border border-slate-700 bg-slate-800/20 p-2 overflow-hidden">
+                                                            {entry ? (
+                                                                <>
+                                                                    <p className="font-bold text-[11px] text-white leading-tight truncate">{entry.subject_name}</p>
+                                                                    <p className="text-[10px] text-slate-400 truncate">{entry.teacher_first_name} {entry.teacher_last_name}</p>
+                                                                    <Badge variant="outline" className="text-[9px] h-3 px-1 mt-1 border-slate-600 text-slate-400">RM {entry.room_number}</Badge>
+                                                                </>
+                                                            ) : (
+                                                                <div className="h-full flex items-center justify-center text-[9px] text-slate-700">Free</div>
+                                                            )}
+                                                        </div>
+                                                    )
+                                                })}
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            </CardContent>
+                        </Card>
+                    </TabsContent>
+
+                    {/* Other Tabs */}
+                    <TabsContent value="grades" className="space-y-4">
+                        <Card className="border-0 bg-slate-800/50 backdrop-blur-xl shadow-xl">
+                            <CardHeader><CardTitle className="text-white flex items-center gap-2"><Award className="h-6 w-6 text-yellow-400" />My Grades</CardTitle></CardHeader>
+                            <CardContent>
+                                <div className="space-y-3">
+                                    {grades.map((grade) => {
+                                        const perc = (grade.grade / grade.max_grade) * 100
+                                        return (
+                                            <div key={grade.id} className="rounded-xl border border-slate-700 bg-slate-800/50 p-5 flex justify-between items-center transition-all hover:border-indigo-500/50">
+                                                <div>
+                                                    <div className="flex items-center gap-3 mb-1">
+                                                        <h3 className="font-semibold text-white">{grade.subject_name}</h3>
+                                                        <Badge variant="outline" className="border-slate-600 text-slate-400">{grade.subject_code}</Badge>
+                                                        <Badge className={getGradeBadgeColor(perc)}>{grade.exam_type}</Badge>
+                                                    </div>
+                                                    <p className="text-xs text-slate-500">{new Date(grade.exam_date).toLocaleDateString()}</p>
+                                                </div>
+                                                <div className="text-right">
+                                                    <div className={`text-2xl font-bold ${getGradeColor(perc)}`}>{perc.toFixed(1)}%</div>
+                                                    <div className="text-[10px] text-slate-500">{grade.grade}/{grade.max_grade}</div>
+                                                </div>
+                                            </div>
+                                        )
+                                    })}
+                                </div>
+                            </CardContent>
+                        </Card>
+                    </TabsContent>
+
+                    <TabsContent value="classes" className="space-y-4">
+                        <Card className="border-0 bg-slate-800/50 backdrop-blur-xl shadow-xl">
+                            <CardHeader><CardTitle className="text-white">Enrolled Classes</CardTitle></CardHeader>
+                            <CardContent>
+                                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                                    {classes.map((c) => (
+                                        <Card key={c.id} className="border-0 bg-slate-700/50 p-4"><h3 className="font-bold text-white mb-1">{c.class_name}</h3><p className="text-xs text-slate-400 mb-2">{c.class_code}</p><div className="space-y-1 text-xs text-slate-300"><div>Teacher: {c.teacher_name}</div><div>Room: {c.room_number}</div><div>Section: {c.section}</div></div></Card>
+                                    ))}
+                                </div>
+                            </CardContent>
+                        </Card>
+                    </TabsContent>
+
+                    <TabsContent value="attendance" className="space-y-4">
+                        <Card className="border-0 bg-slate-800/50 backdrop-blur-xl shadow-xl">
+                            <CardHeader><CardTitle className="text-white">Attendance</CardTitle></CardHeader>
+                            <CardContent>
+                                {attendanceStats && <div className="grid grid-cols-4 gap-4 mb-6 text-center"><div className="p-3 rounded-lg bg-green-500/10 text-green-400"><div className="text-xl font-bold">{attendanceStats.present}</div><div className="text-[10px]">Present</div></div><div className="p-3 rounded-lg bg-red-500/10 text-red-400"><div className="text-xl font-bold">{attendanceStats.absent}</div><div className="text-[10px]">Absent</div></div><div className="p-3 rounded-lg bg-yellow-500/10 text-yellow-400"><div className="text-xl font-bold">{attendanceStats.late}</div><div className="text-[10px]">Late</div></div><div className="p-3 rounded-lg bg-blue-500/10 text-blue-400"><div className="text-xl font-bold">{attendanceStats.excused}</div><div className="text-[10px]">Excused</div></div></div>}
+                                <div className="space-y-2">{attendance.slice(0, 10).map((r) => (<div key={r.id} className="flex justify-between items-center p-3 border border-slate-700 rounded-lg"><div><div className="text-sm font-medium text-white">{r.class_name}</div><div className="text-[10px] text-slate-500">{new Date(r.attendance_date).toLocaleDateString()}</div></div><Badge className={getAttendanceStatusColor(r.status)}>{r.status}</Badge></div>))}</div>
                             </CardContent>
                         </Card>
                     </TabsContent>

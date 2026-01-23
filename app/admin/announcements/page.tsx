@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -16,67 +16,114 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
-import { Megaphone, Plus, Calendar, AlertCircle, Bell, Trophy } from "lucide-react"
+import { Megaphone, Plus, Calendar, AlertCircle, Bell, Trophy, Trash2, Loader2 } from "lucide-react"
+import { toast } from "sonner"
+
+interface Announcement {
+  id: number
+  title: string
+  content: string
+  announcement_type: string
+  target_audience: string
+  posted_by: number
+  priority: string
+  posted_at: string
+  expires_at: string | null
+  posted_by_first_name?: string
+  posted_by_last_name?: string
+}
 
 export default function AnnouncementsPage() {
   const [open, setOpen] = useState(false)
+  const [announcements, setAnnouncements] = useState<Announcement[]>([])
+  const [loading, setLoading] = useState(true)
+  const [submitting, setSubmitting] = useState(false)
+  const [formData, setFormData] = useState({
+    title: "",
+    content: "",
+    announcementType: "general",
+    targetAudience: "all",
+    priority: "medium",
+    expiresAt: "",
+  })
 
-  const announcements = [
-    {
-      id: 1,
-      title: "Welcome to New Academic Year",
-      content:
-        "We welcome all students and staff to the new academic year 2024-2025. Let us make this year successful together.",
-      type: "general",
-      priority: "high",
-      audience: "all",
-      date: "2024-01-05",
-      postedBy: "Admin",
-    },
-    {
-      id: 2,
-      title: "Mid-term Exams Schedule",
-      content:
-        "Mid-term examinations will be conducted from March 15 to March 25. Please check your individual timetables for specific dates and times.",
-      type: "academic",
-      priority: "high",
-      audience: "students",
-      date: "2024-03-01",
-      postedBy: "Admin",
-    },
-    {
-      id: 3,
-      title: "Parent-Teacher Meeting",
-      content:
-        "Parent-teacher meeting scheduled for next Saturday at 10 AM in the main hall. Your attendance is important.",
-      type: "event",
-      priority: "medium",
-      audience: "parents",
-      date: "2024-03-08",
-      postedBy: "Principal",
-    },
-    {
-      id: 4,
-      title: "Sports Day 2024",
-      content:
-        "Annual Sports Day will be held on April 15, 2024. All students are encouraged to participate in various events.",
-      type: "event",
-      priority: "medium",
-      audience: "all",
-      date: "2024-03-20",
-      postedBy: "Sports Department",
-    },
-    {
-      id: 5,
-      title: "Holiday Notice",
-      content: "School will remain closed on March 25 due to public holiday. Classes will resume on March 26.",
-      type: "holiday",
-      priority: "low",
-      audience: "all",
-      date: "2024-03-22",
-      postedBy: "Admin",
-    },
-  ]
+  const fetchAnnouncements = async () => {
+    setLoading(true)
+    try {
+      const response = await fetch("http://localhost:4000/api/announcements", {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      })
+      if (!response.ok) throw new Error("Failed to fetch announcements")
+      const data = await response.json()
+      setAnnouncements(data.data)
+    } catch (error) {
+      console.error(error)
+      toast.error("Failed to load announcements")
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    fetchAnnouncements()
+  }, [])
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setSubmitting(true)
+    try {
+      const response = await fetch("http://localhost:4000/api/announcements", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+        body: JSON.stringify(formData),
+      })
+
+      if (!response.ok) throw new Error("Failed to create announcement")
+
+      toast.success("Announcement published successfully")
+      setOpen(false)
+      setFormData({
+        title: "",
+        content: "",
+        announcementType: "general",
+        targetAudience: "all",
+        priority: "medium",
+        expiresAt: "",
+      })
+      fetchAnnouncements()
+    } catch (error) {
+      console.error(error)
+      toast.error("Failed to publish announcement")
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  const handleDelete = async (id: number) => {
+    if (!confirm("Are you sure you want to delete this announcement?")) return
+
+    try {
+      const response = await fetch(`http://localhost:4000/api/announcements/${id}`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      })
+
+      if (!response.ok) throw new Error("Failed to delete announcement")
+
+      toast.success("Announcement deleted")
+      fetchAnnouncements()
+    } catch (error) {
+      console.error(error)
+      toast.error("Failed to delete announcement")
+    }
+  }
 
   const getTypeIcon = (type: string) => {
     switch (type) {
@@ -136,74 +183,106 @@ export default function AnnouncementsPage() {
             </Button>
           </DialogTrigger>
           <DialogContent className="sm:max-w-[600px]">
-            <DialogHeader>
-              <DialogTitle>Create New Announcement</DialogTitle>
-              <DialogDescription>Post a new announcement for students, teachers, or parents</DialogDescription>
-            </DialogHeader>
-            <div className="grid gap-4 py-4">
-              <div className="space-y-2">
-                <Label htmlFor="title">Title</Label>
-                <Input id="title" placeholder="Enter announcement title" />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="content">Content</Label>
-                <Textarea id="content" placeholder="Enter announcement content" rows={4} />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
+            <form onSubmit={handleSubmit}>
+              <DialogHeader>
+                <DialogTitle>Create New Announcement</DialogTitle>
+                <DialogDescription>Post a new announcement for students, teachers, or parents</DialogDescription>
+              </DialogHeader>
+              <div className="grid gap-4 py-4">
                 <div className="space-y-2">
-                  <Label htmlFor="type">Type</Label>
-                  <Select>
-                    <SelectTrigger id="type">
-                      <SelectValue placeholder="Select type" />
+                  <Label htmlFor="title">Title</Label>
+                  <Input
+                    id="title"
+                    placeholder="Enter announcement title"
+                    required
+                    value={formData.title}
+                    onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="content">Content</Label>
+                  <Textarea
+                    id="content"
+                    placeholder="Enter announcement content"
+                    rows={4}
+                    required
+                    value={formData.content}
+                    onChange={(e) => setFormData({ ...formData, content: e.target.value })}
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="type">Type</Label>
+                    <Select
+                      value={formData.announcementType}
+                      onValueChange={(val) => setFormData({ ...formData, announcementType: val })}
+                    >
+                      <SelectTrigger id="type">
+                        <SelectValue placeholder="Select type" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="general">General</SelectItem>
+                        <SelectItem value="academic">Academic</SelectItem>
+                        <SelectItem value="event">Event</SelectItem>
+                        <SelectItem value="urgent">Urgent</SelectItem>
+                        <SelectItem value="holiday">Holiday</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="priority">Priority</Label>
+                    <Select
+                      value={formData.priority}
+                      onValueChange={(val) => setFormData({ ...formData, priority: val })}
+                    >
+                      <SelectTrigger id="priority">
+                        <SelectValue placeholder="Select priority" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="high">High</SelectItem>
+                        <SelectItem value="medium">Medium</SelectItem>
+                        <SelectItem value="low">Low</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="audience">Target Audience</Label>
+                  <Select
+                    value={formData.targetAudience}
+                    onValueChange={(val) => setFormData({ ...formData, targetAudience: val })}
+                  >
+                    <SelectTrigger id="audience">
+                      <SelectValue placeholder="Select audience" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="general">General</SelectItem>
-                      <SelectItem value="academic">Academic</SelectItem>
-                      <SelectItem value="event">Event</SelectItem>
-                      <SelectItem value="urgent">Urgent</SelectItem>
-                      <SelectItem value="holiday">Holiday</SelectItem>
+                      <SelectItem value="all">Everyone</SelectItem>
+                      <SelectItem value="students">Students</SelectItem>
+                      <SelectItem value="teachers">Teachers</SelectItem>
+                      <SelectItem value="parents">Parents</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="priority">Priority</Label>
-                  <Select>
-                    <SelectTrigger id="priority">
-                      <SelectValue placeholder="Select priority" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="high">High</SelectItem>
-                      <SelectItem value="medium">Medium</SelectItem>
-                      <SelectItem value="low">Low</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <Label htmlFor="expiresAt">Expires At (Optional)</Label>
+                  <Input
+                    id="expiresAt"
+                    type="datetime-local"
+                    value={formData.expiresAt}
+                    onChange={(e) => setFormData({ ...formData, expiresAt: e.target.value })}
+                  />
                 </div>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="audience">Target Audience</Label>
-                <Select>
-                  <SelectTrigger id="audience">
-                    <SelectValue placeholder="Select audience" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Everyone</SelectItem>
-                    <SelectItem value="students">Students</SelectItem>
-                    <SelectItem value="teachers">Teachers</SelectItem>
-                    <SelectItem value="parents">Parents</SelectItem>
-                  </SelectContent>
-                </Select>
+              <div className="flex justify-end gap-2">
+                <Button type="button" variant="outline" onClick={() => setOpen(false)}>
+                  Cancel
+                </Button>
+                <Button type="submit" disabled={submitting}>
+                  {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  Publish
+                </Button>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="expiresAt">Expires At (Optional)</Label>
-                <Input id="expiresAt" type="datetime-local" />
-              </div>
-            </div>
-            <div className="flex justify-end gap-2">
-              <Button variant="outline" onClick={() => setOpen(false)}>
-                Cancel
-              </Button>
-              <Button onClick={() => setOpen(false)}>Publish</Button>
-            </div>
+            </form>
           </DialogContent>
         </Dialog>
       </div>
@@ -214,7 +293,7 @@ export default function AnnouncementsPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-muted-foreground text-sm">Total</p>
-                <p className="font-bold text-2xl">42</p>
+                <p className="font-bold text-2xl">{announcements.length}</p>
               </div>
               <Megaphone className="h-8 w-8 text-primary" />
             </div>
@@ -224,19 +303,10 @@ export default function AnnouncementsPage() {
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-muted-foreground text-sm">Active</p>
-                <p className="font-bold text-2xl">38</p>
-              </div>
-              <Bell className="h-8 w-8 text-green-500" />
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-muted-foreground text-sm">High Priority</p>
-                <p className="font-bold text-2xl">8</p>
+                <p className="text-muted-foreground text-sm">Priority: High</p>
+                <p className="font-bold text-2xl">
+                  {announcements.filter(a => a.priority === "high").length}
+                </p>
               </div>
               <AlertCircle className="h-8 w-8 text-red-500" />
             </div>
@@ -246,44 +316,74 @@ export default function AnnouncementsPage() {
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-muted-foreground text-sm">This Month</p>
-                <p className="font-bold text-2xl">12</p>
+                <p className="text-muted-foreground text-sm">For Students</p>
+                <p className="font-bold text-2xl">
+                  {announcements.filter(a => a.target_audience === "students").length}
+                </p>
               </div>
-              <Calendar className="h-8 w-8 text-blue-500" />
+              <Bell className="h-8 w-8 text-green-500" />
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-muted-foreground text-sm">Events</p>
+                <p className="font-bold text-2xl">
+                  {announcements.filter(a => a.announcement_type === "event").length}
+                </p>
+              </div>
+              <Trophy className="h-8 w-8 text-blue-500" />
             </div>
           </CardContent>
         </Card>
       </div>
 
       <div className="space-y-4">
-        {announcements.map((announcement) => (
-          <Card key={announcement.id}>
-            <CardHeader>
-              <div className="flex items-start justify-between">
-                <div className="flex items-start gap-3">
-                  <div className="rounded-full bg-primary/10 p-2 text-primary">{getTypeIcon(announcement.type)}</div>
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2">
-                      <CardTitle className="text-xl">{announcement.title}</CardTitle>
-                      {getTypeBadge(announcement.type)}
-                      {getPriorityBadge(announcement.priority)}
+        {loading ? (
+          <div className="flex justify-center p-12">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          </div>
+        ) : announcements.length === 0 ? (
+          <p className="text-center text-muted-foreground py-12">No announcements found.</p>
+        ) : (
+          announcements.map((announcement) => (
+            <Card key={announcement.id}>
+              <CardHeader>
+                <div className="flex items-start justify-between">
+                  <div className="flex items-start gap-3">
+                    <div className="rounded-full bg-primary/10 p-2 text-primary">{getTypeIcon(announcement.announcement_type)}</div>
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2">
+                        <CardTitle className="text-xl">{announcement.title}</CardTitle>
+                        {getTypeBadge(announcement.announcement_type)}
+                        {getPriorityBadge(announcement.priority)}
+                      </div>
+                      <CardDescription className="mt-2 text-sm">
+                        Posted by {announcement.posted_by_first_name} {announcement.posted_by_last_name} on {new Date(announcement.posted_at).toLocaleDateString()} • For{" "}
+                        {announcement.target_audience}
+                      </CardDescription>
                     </div>
-                    <CardDescription className="mt-2">
-                      Posted by {announcement.postedBy} on {new Date(announcement.date).toLocaleDateString()} • For{" "}
-                      {announcement.audience}
-                    </CardDescription>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button size="icon" variant="destructive" onClick={() => handleDelete(announcement.id)}>
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
                   </div>
                 </div>
-                <Button size="sm" variant="outline">
-                  View Details
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <p className="text-muted-foreground leading-relaxed">{announcement.content}</p>
-            </CardContent>
-          </Card>
-        ))}
+              </CardHeader>
+              <CardContent>
+                <p className="text-muted-foreground leading-relaxed whitespace-pre-wrap">{announcement.content}</p>
+                {announcement.expires_at && (
+                  <p className="mt-4 text-xs text-muted-foreground">
+                    Expires: {new Date(announcement.expires_at).toLocaleString()}
+                  </p>
+                )}
+              </CardContent>
+            </Card>
+          ))
+        )}
       </div>
     </div>
   )

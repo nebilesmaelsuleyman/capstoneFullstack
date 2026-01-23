@@ -1,11 +1,11 @@
 import { Controller, Get, Post, Body, Param, Query, UseGuards, HttpException, HttpStatus } from "@nestjs/common"
 import { JwtAuthGuard } from "../auth/jwt-auth.guard"
-import  { ExamsService } from "./exams.service"
+import { ExamsService } from "./exams.service"
 
 @Controller("exams")
-@UseGuards(JwtAuthGuard)
+// @UseGuards(JwtAuthGuard)
 export class ExamsController {
-  constructor(private readonly examsService: ExamsService) {}
+  constructor(private readonly examsService: ExamsService) { }
 
   @Post()
   async createExam(@Body() body: any) {
