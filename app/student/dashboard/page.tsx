@@ -287,7 +287,7 @@ export default function StudentDashboard() {
                         <Avatar className="h-20 w-20 border-4 border-white/30 shadow-xl">
                             <AvatarImage src="/placeholder-avatar.jpg" />
                             <AvatarFallback className="bg-gradient-to-br from-indigo-500 to-pink-500 text-2xl font-bold text-white">
-                                {studentInfo ? `${studentInfo.first_name[0]}${studentInfo.last_name[0]}` : <User className="h-10 w-10" />}
+                                {studentInfo ? `${(studentInfo.firstName || studentInfo.first_name)?.[0]}${(studentInfo.lastName || studentInfo.last_name)?.[0]}` : <User className="h-10 w-10" />}
                             </AvatarFallback>
                         </Avatar>
                     </div>
@@ -332,9 +332,9 @@ export default function StudentDashboard() {
                                                         </div>
                                                         <p className="text-sm text-slate-400 whitespace-pre-wrap">{a.content}</p>
                                                         <div className="mt-2 flex items-center gap-2 text-xs text-slate-500">
-                                                            <span>By {a.posted_by_first_name} {a.posted_by_last_name}</span>
+                                                            <span>By {a.posted_by_first_name || a.postedByFirstName} {a.posted_by_last_name || a.postedByLastName}</span>
                                                             <span>•</span>
-                                                            <span>{new Date(a.posted_at).toLocaleDateString()}</span>
+                                                            <span>{a.posted_at ? new Date(a.posted_at).toLocaleDateString() : 'N/A'}</span>
                                                         </div>
                                                     </div>
                                                 </div>
@@ -373,7 +373,7 @@ export default function StudentDashboard() {
                                                             {entry ? (
                                                                 <>
                                                                     <p className="font-bold text-[11px] text-white leading-tight truncate">{entry.subject_name}</p>
-                                                                    <p className="text-[10px] text-slate-400 truncate">{entry.teacher_first_name} {entry.teacher_last_name}</p>
+                                                                    <p className="text-[10px] text-slate-400 truncate">{(entry.teacher_first_name || entry.teacherFirstName)} {(entry.teacher_last_name || entry.teacherLastName)}</p>
                                                                     <Badge variant="outline" className="text-[9px] h-3 px-1 mt-1 border-slate-600 text-slate-400">RM {entry.room_number}</Badge>
                                                                 </>
                                                             ) : (
@@ -515,11 +515,11 @@ export default function StudentDashboard() {
                                 <div className="flex items-center gap-6">
                                     <Avatar className="h-24 w-24 border-4 border-indigo-500/30">
                                         <AvatarFallback className="bg-gradient-to-br from-indigo-500 to-pink-500 text-3xl font-bold text-white">
-                                            {studentInfo ? `${studentInfo.first_name[0]}${studentInfo.last_name[0]}` : <User className="h-12 w-12" />}
+                                            {studentInfo ? `${(studentInfo.firstName || studentInfo.first_name)?.[0]}${(studentInfo.lastName || studentInfo.last_name)?.[0]}` : <User className="h-12 w-12" />}
                                         </AvatarFallback>
                                     </Avatar>
                                     <div>
-                                        <h2 className="text-3xl font-bold text-white tracking-tight">{studentInfo?.first_name} {studentInfo?.last_name}</h2>
+                                        <h2 className="text-3xl font-bold text-white tracking-tight">{studentInfo?.firstName || studentInfo?.first_name} {studentInfo?.lastName || studentInfo?.last_name}</h2>
                                         <div className="flex items-center gap-2 mt-1">
                                             <Badge variant="outline" className="border-indigo-500/50 text-indigo-400">{studentInfo?.student_id}</Badge>
                                             <Badge className="bg-green-500/20 text-green-300 border-green-500/30">Active Student</Badge>

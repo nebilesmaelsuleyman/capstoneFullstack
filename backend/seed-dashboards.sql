@@ -8,15 +8,15 @@ TRUNCATE TABLE users, students, teachers, classes, subjects, class_subjects, stu
 -- 1. Create Users
 -- Teacher User (ID 1 will be assigned due to RESTART IDENTITY)
 INSERT INTO users (email, password_hash, role, first_name, last_name, phone, is_active) 
-VALUES ('teacher@school.com', '$2b$10$YQvZ8P0q8wXxVvQ9Q8vQ8u8Q8Q8Q8Q8Q8Q8Q8Q8Q8Q8Q8Q8Q8Q8Q8', 'teacher', 'John', 'Smith', '+1234567890', true);
+VALUES ('teacher@school.com', '$2b$10$CpDI7iE9H8YLnG2bUSrf5Oz9FyvSmV1Hhr19lZH5t6im3Vw69HMgC', 'teacher', 'John', 'Smith', '+1234567890', true);
 
 -- Student User (ID 2 will be assigned)
 INSERT INTO users (email, password_hash, role, first_name, last_name, phone, is_active) 
-VALUES ('student@school.com', '$2b$10$YQvZ8P0q8wXxVvQ9Q8vQ8u8Q8Q8Q8Q8Q8Q8Q8Q8Q8Q8Q8Q8Q8Q8Q8', 'student', 'Alice', 'Brown', '+1234567891', true);
+VALUES ('student@school.com', '$2b$10$CpDI7iE9H8YLnG2bUSrf5Oz9FyvSmV1Hhr19lZH5t6im3Vw69HMgC', 'student', 'Alice', 'Brown', '+1234567891', true);
 
 -- Admin User (ID 3 will be assigned)
 INSERT INTO users (email, password_hash, role, first_name, last_name, phone, is_active) 
-VALUES ('admin@school.com', '$2b$10$YQvZ8P0q8wXxVvQ9Q8vQ8u8Q8Q8Q8Q8Q8Q8Q8Q8Q8Q8Q8Q8Q8Q8Q8', 'admin', 'System', 'Administrator', '+1234567892', true);
+VALUES ('admin@school.com', '$2b$10$4HzX2LqhqBzISgEd0B/VveVxEtZQiAsuwU0hW8VYaIr/TWUcB3d9K', 'admin', 'System', 'Administrator', '+1234567892', true);
 
 -- 2. Create Teacher and Student records
 INSERT INTO teachers (user_id, employee_id, date_of_birth, gender, department, specialization, qualification, hire_date) 

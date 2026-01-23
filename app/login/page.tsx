@@ -164,7 +164,8 @@ export default function LoginPage() {
         <div className="mt-8 text-center animate-in fade-in slide-in-from-bottom-2 duration-1000 delay-500">
           <div className="inline-block rounded-lg border border-slate-800 bg-slate-900/50 px-4 py-3 backdrop-blur-sm text-xs text-slate-500">
             <span className="block mb-1 font-medium text-slate-400">DEMO ACCESS</span>
-            <code className="text-indigo-400/80">admin@school.com / Admin@123</code>
+            <code className="text-indigo-400/80">admin@school.com / 123456789</code>
+            <div className="mt-1 opacity-50 text-[10px]">Student/Teacher: 12345678</div>
           </div>
         </div>
       </div>
