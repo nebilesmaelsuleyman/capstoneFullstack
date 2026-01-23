@@ -65,6 +65,20 @@ interface AttendanceStats {
     percentage: number
 }
 
+interface LibraryIssue {
+    id: number
+    book_id: number
+    student_id: number
+    issue_date: string
+    due_date: string
+    return_date: string | null
+    status: string
+    fine_amount: number
+    title: string
+    author: string
+    isbn: string
+}
+
 interface Announcement {
     id: number
     title: string
@@ -95,6 +109,7 @@ export default function StudentDashboard() {
     const [attendanceStats, setAttendanceStats] = useState<AttendanceStats | null>(null)
     const [announcements, setAnnouncements] = useState<Announcement[]>([])
     const [timetable, setTimetable] = useState<TimetableEntry[]>([])
+    const [libraryIssues, setLibraryIssues] = useState<LibraryIssue[]>([])
     const [loading, setLoading] = useState(true)
     const [studentId, setStudentId] = useState<number | null>(null)
     const [studentInfo, setStudentInfo] = useState<Student | null>(null)
@@ -119,7 +134,7 @@ export default function StudentDashboard() {
     const fetchStudentData = async (id: number) => {
         setLoading(true)
         try {
-            const [gradesRes, classesRes, attendanceRes, statsRes, announcementsRes, studentRes] = await Promise.all([
+            const [gradesRes, classesRes, attendanceRes, statsRes, announcementsRes, studentRes, libraryRes] = await Promise.all([
                 fetch(`http://localhost:4000/api/grades/student/${id}`, {
                     headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
                 }),
@@ -136,6 +151,9 @@ export default function StudentDashboard() {
                     headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
                 }),
                 fetch(`http://localhost:4000/api/students/${id}`, {
+                    headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+                }),
+                fetch(`http://localhost:4000/api/library/student/${id}/issues`, {
                     headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
                 })
             ])
@@ -166,6 +184,10 @@ export default function StudentDashboard() {
             if (studentRes.ok) {
                 const data = await studentRes.json()
                 setStudentInfo(data.data || data)
+            }
+            if (libraryRes.ok) {
+                const data = await libraryRes.json()
+                setLibraryIssues(data.data || [])
             }
         } catch (error) {
             console.error('Error fetching student data:', error)
@@ -286,6 +308,7 @@ export default function StudentDashboard() {
                         <TabsTrigger value="grades">Grades</TabsTrigger>
                         <TabsTrigger value="classes">Classes</TabsTrigger>
                         <TabsTrigger value="attendance">Attendance</TabsTrigger>
+                        <TabsTrigger value="library">Library</TabsTrigger>
                         <TabsTrigger value="profile">Profile</TabsTrigger>
                     </TabsList>
 
@@ -416,6 +439,72 @@ export default function StudentDashboard() {
                             <CardContent>
                                 {attendanceStats && <div className="grid grid-cols-4 gap-4 mb-6 text-center"><div className="p-3 rounded-lg bg-green-500/10 text-green-400"><div className="text-xl font-bold">{attendanceStats.present}</div><div className="text-[10px]">Present</div></div><div className="p-3 rounded-lg bg-red-500/10 text-red-400"><div className="text-xl font-bold">{attendanceStats.absent}</div><div className="text-[10px]">Absent</div></div><div className="p-3 rounded-lg bg-yellow-500/10 text-yellow-400"><div className="text-xl font-bold">{attendanceStats.late}</div><div className="text-[10px]">Late</div></div><div className="p-3 rounded-lg bg-blue-500/10 text-blue-400"><div className="text-xl font-bold">{attendanceStats.excused}</div><div className="text-[10px]">Excused</div></div></div>}
                                 <div className="space-y-2">{attendance.slice(0, 10).map((r) => (<div key={r.id} className="flex justify-between items-center p-3 border border-slate-700 rounded-lg"><div><div className="text-sm font-medium text-white">{r.class_name}</div><div className="text-[10px] text-slate-500">{new Date(r.attendance_date).toLocaleDateString()}</div></div><Badge className={getAttendanceStatusColor(r.status)}>{r.status}</Badge></div>))}</div>
+                            </CardContent>
+                        </Card>
+                    </TabsContent>
+
+                    <TabsContent value="library" className="space-y-4">
+                        <Card className="border-0 bg-slate-800/50 backdrop-blur-xl shadow-xl">
+                            <CardHeader className="flex flex-row items-center justify-between">
+                                <CardTitle className="text-white flex items-center gap-2">
+                                    <BookOpen className="h-6 w-6 text-indigo-400" />
+                                    Library Records
+                                </CardTitle>
+                                <Badge variant="outline" className="border-indigo-500/50 text-indigo-300">
+                                    {libraryIssues.filter(i => i.status === 'issued' || i.status === 'overdue').length} Active Issues
+                                </Badge>
+                            </CardHeader>
+                            <CardContent>
+                                {libraryIssues.length === 0 ? (
+                                    <div className="py-12 text-center text-slate-500">
+                                        <BookOpen className="mx-auto h-12 w-12 text-slate-700 mb-4" />
+                                        No library records found
+                                    </div>
+                                ) : (
+                                    <div className="grid gap-4">
+                                        {libraryIssues.map((issue) => (
+                                            <div key={issue.id} className="group relative overflow-hidden rounded-xl border border-slate-700 bg-slate-800/30 p-5 transition-all hover:border-indigo-500/50 hover:bg-slate-800/50">
+                                                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                                                    <div className="flex items-start gap-4">
+                                                        <div className={`p-3 rounded-lg ${issue.status === 'overdue' ? 'bg-red-500/10 text-red-400' : 'bg-indigo-500/10 text-indigo-400'}`}>
+                                                            <BookOpen className="h-6 w-6" />
+                                                        </div>
+                                                        <div>
+                                                            <h3 className="font-bold text-white group-hover:text-indigo-300 transition-colors">{issue.title}</h3>
+                                                            <p className="text-sm text-slate-400">{issue.author}</p>
+                                                            <div className="mt-2 flex flex-wrap gap-2">
+                                                                <Badge variant="secondary" className="bg-slate-700/50 text-slate-300 text-[10px] font-normal">
+                                                                    ISBN: {issue.isbn}
+                                                                </Badge>
+                                                                {issue.fine_amount > 0 && (
+                                                                    <Badge className="bg-red-500/20 text-red-400 border-red-500/30 text-[10px]">
+                                                                        Fine: ${issue.fine_amount}
+                                                                    </Badge>
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="flex flex-row md:flex-col items-center md:items-end justify-between md:justify-center gap-2">
+                                                        <Badge className={`
+                                                            ${issue.status === 'issued' ? 'bg-blue-500/20 text-blue-300 border-blue-500/30' : ''}
+                                                            ${issue.status === 'returned' ? 'bg-green-500/20 text-green-300 border-green-500/30' : ''}
+                                                            ${issue.status === 'overdue' ? 'bg-red-500/20 text-red-300 border-red-500/30 animate-pulse' : ''}
+                                                        `}>
+                                                            {issue.status.toUpperCase()}
+                                                        </Badge>
+                                                        <div className="text-right">
+                                                            <p className="text-[10px] text-slate-500 uppercase font-semibold">Due Date</p>
+                                                            <p className={`text-sm font-medium ${issue.status === 'overdue' ? 'text-red-400' : 'text-slate-300'}`}>
+                                                                {new Date(issue.due_date).toLocaleDateString()}
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
                             </CardContent>
                         </Card>
                     </TabsContent>

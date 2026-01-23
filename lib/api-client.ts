@@ -263,35 +263,34 @@ class ApiClient {
     })
   }
 
-  // Fees endpoints
-  async getFees() {
-    return this.request<any>("/fees")
+  // Library endpoints
+  async getBooks(filters: any = {}) {
+    let query = ""
+    if (filters.search) query += `search=${filters.search}`
+    if (filters.category) query += (query ? "&" : "") + `category=${filters.category}`
+    return this.request<any>(`/library/books${query ? "?" + query : ""}`)
   }
 
-  async createFeeRecord(feeData: any) {
-    return this.request<any>("/fees", {
+  async getStudentIssues(studentId: number) {
+    return this.request<any>(`/library/student/${studentId}/issues`)
+  }
+
+  async issueBook(issueData: any) {
+    return this.request<any>("/library/issue", {
       method: "POST",
-      body: JSON.stringify(feeData),
+      body: JSON.stringify(issueData),
     })
   }
 
-  // Library endpoints
-  async getBooks() {
-    return this.request<any>("/library")
-  }
-
-  async createBook(bookData: any) {
-    return this.request<any>("/library", {
-      method: "POST",
-      body: JSON.stringify(bookData),
+  async returnBook(issueId: number, fineAmount = 0) {
+    return this.request<any>(`/library/return/${issueId}`, {
+      method: "PUT",
+      body: JSON.stringify({ fineAmount }),
     })
   }
 
   async borrowBook(borrowData: any) {
-    return this.request<any>("/library/borrow", {
-      method: "POST",
-      body: JSON.stringify(borrowData),
-    })
+    return this.issueBook(borrowData)
   }
 }
 

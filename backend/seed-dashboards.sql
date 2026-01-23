@@ -3,7 +3,7 @@ BEGIN;
 
 -- TRUNCATE all relevant tables to ensure a clean state for testing
 -- Cascading to handle dependencies
-TRUNCATE TABLE users, students, teachers, classes, subjects, class_subjects, student_classes, grades, attendance, timetable, announcements RESTART IDENTITY CASCADE;
+TRUNCATE TABLE users, students, teachers, classes, subjects, class_subjects, student_classes, grades, attendance, timetable, announcements, library_books, book_issues RESTART IDENTITY CASCADE;
 
 -- 1. Create Users
 -- Teacher User (ID 1 will be assigned due to RESTART IDENTITY)
@@ -98,5 +98,17 @@ INSERT INTO announcements (title, content, announcement_type, target_audience, p
 ('Science Fair Next Week', 'The annual school science fair is scheduled for next Friday. All students are encouraged to participate.', 'event', 'students', 3, 'medium', NOW()),
 ('New Grading Policy', 'Please review the updated grading policy in the teachers handbook.', 'academic', 'teachers', 3, 'high', NOW()),
 ('Holiday Notice', 'School will be closed this Friday for a public holiday.', 'holiday', 'all', 3, 'medium', NOW());
+
+-- 11. Add Library Books
+INSERT INTO library_books (title, author, isbn, category, total_copies, available_copies, published_year) VALUES
+('The Great Gatsby', 'F. Scott Fitzgerald', '9780743273565', 'Fiction', 5, 4, 1925),
+('Introduction to Algorithms', 'Thomas H. Cormen', '9780262033848', 'Science', 3, 2, 2009),
+('A Brief History of Time', 'Stephen Hawking', '9780553380163', 'Science', 2, 2, 1988),
+('1984', 'George Orwell', '9780451524935', 'Fiction', 4, 4, 1949);
+
+-- 12. Add Library Issues for student ID 1
+INSERT INTO book_issues (book_id, student_id, issue_date, due_date, status) VALUES
+(1, 1, CURRENT_DATE - INTERVAL '5 days', CURRENT_DATE + INTERVAL '9 days', 'issued'),
+(2, 1, CURRENT_DATE - INTERVAL '12 days', CURRENT_DATE - INTERVAL '2 days', 'overdue');
 
 COMMIT;
