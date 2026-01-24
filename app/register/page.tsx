@@ -177,7 +177,7 @@ export default function RegisterPage() {
 
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="space-y-2">
-                                    <Label htmlFor="password" name="Password" className="text-slate-200 ml-1">Password</Label>
+                                    <Label htmlFor="password" className="text-slate-200 ml-1">Password</Label>
                                     <div className="relative group">
                                         <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500 transition-colors group-focus-within:text-purple-400">
                                             <Lock className="h-4 w-4" />
@@ -194,7 +194,7 @@ export default function RegisterPage() {
                                     </div>
                                 </div>
                                 <div className="space-y-2">
-                                    <Label htmlFor="confirmPassword" name="Confirm Password" className="text-slate-200 ml-1">Confirm</Label>
+                                    <Label htmlFor="confirmPassword" className="text-slate-200 ml-1">Confirm</Label>
                                     <Input
                                         id="confirmPassword"
                                         type="password"

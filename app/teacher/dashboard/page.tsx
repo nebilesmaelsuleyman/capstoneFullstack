@@ -361,7 +361,7 @@ export default function TeacherDashboard() {
                     studentId,
                     classId: selectedClass.id,
                     attendanceDate,
-                    attendanceDate,
+
                     status,
                     remarks: "",
                     subjectId: selectedSubject ? parseInt(selectedSubject) : null
@@ -386,8 +386,7 @@ export default function TeacherDashboard() {
             const records = classAttendance.map(s => ({
                 studentId: s.student_id,
                 status: s.status === 'not_marked' ? 'present' : s.status,
-                studentId: s.student_id,
-                status: s.status === 'not_marked' ? 'present' : s.status,
+
                 remarks: s.remarks,
                 subjectId: selectedSubject ? parseInt(selectedSubject) : null
             }))
