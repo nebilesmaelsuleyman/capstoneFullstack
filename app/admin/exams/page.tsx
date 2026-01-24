@@ -19,8 +19,9 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { ClipboardList, Plus, Calendar, Clock, Loader2 } from "lucide-react"
+import { ClipboardList, Plus, Calendar, Clock, Loader2, GraduationCap } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
+import { cn } from "@/lib/utils"
 
 interface Exam {
   id: number
@@ -221,29 +222,34 @@ export default function ExamsPage() {
   }
 
   return (
-    <div className="flex flex-col gap-8 p-8">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="font-semibold text-3xl text-balance">Exams & Results</h1>
-          <p className="text-muted-foreground">Manage exams and track student performance</p>
+    <div className="flex flex-col gap-8 p-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+        <div className="space-y-1">
+          <div className="flex items-center gap-2 text-indigo-400 text-sm font-bold uppercase tracking-widest">
+            <ClipboardList className="h-4 w-4" />
+            <span>Academic Assessment</span>
+          </div>
+          <h1 className="text-4xl font-black text-white tracking-tighter">Exams & Results</h1>
+          <p className="text-slate-400 max-w-md">Oversee examination scheduling, monitor institutional performance, and manage student graded records.</p>
         </div>
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild>
-            <Button>
+            <Button className="bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg shadow-indigo-500/20">
               <Plus className="mr-2 h-4 w-4" />
-              Create Exam
+              Initialize New Exam
             </Button>
           </DialogTrigger>
-          <DialogContent className="sm:max-w-[550px]">
+          <DialogContent className="sm:max-w-[550px] bg-slate-900 border-slate-800 text-white shadow-2xl">
             <DialogHeader>
-              <DialogTitle>Create New Exam</DialogTitle>
-              <DialogDescription>Add a new exam to the schedule</DialogDescription>
+              <DialogTitle className="text-2xl font-bold tracking-tight">Exam Protocol Creation</DialogTitle>
+              <DialogDescription className="text-slate-400">Define parameters for a new institutional assessment.</DialogDescription>
             </DialogHeader>
             <div className="grid gap-4 py-4">
               <div className="space-y-2">
-                <Label htmlFor="examName">Exam Name *</Label>
+                <Label htmlFor="examName" className="text-slate-400 text-[10px] uppercase font-bold">Exam Designation *</Label>
                 <Input
                   id="examName"
+                  className="bg-slate-800 border-slate-700 focus:ring-indigo-500"
                   placeholder="Mid-term Mathematics"
                   value={newExam.examName}
                   onChange={(e) => setNewExam({ ...newExam, examName: e.target.value })}
@@ -251,12 +257,12 @@ export default function ExamsPage() {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="examType">Exam Type *</Label>
+                  <Label htmlFor="examType" className="text-slate-400 text-[10px] uppercase font-bold">Protocol Type *</Label>
                   <Select value={newExam.examType} onValueChange={(value) => setNewExam({ ...newExam, examType: value })}>
-                    <SelectTrigger id="examType">
+                    <SelectTrigger id="examType" className="bg-slate-800 border-slate-700">
                       <SelectValue placeholder="Select type" />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="bg-slate-900 border-slate-800 text-white">
                       <SelectItem value="midterm">Mid-term</SelectItem>
                       <SelectItem value="final">Final</SelectItem>
                       <SelectItem value="quiz">Quiz</SelectItem>
@@ -266,12 +272,12 @@ export default function ExamsPage() {
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="subject">Subject *</Label>
+                  <Label htmlFor="subject" className="text-slate-400 text-[10px] uppercase font-bold">Academic Subject *</Label>
                   <Select value={newExam.subjectId} onValueChange={(value) => setNewExam({ ...newExam, subjectId: value })}>
-                    <SelectTrigger id="subject">
+                    <SelectTrigger id="subject" className="bg-slate-800 border-slate-700">
                       <SelectValue placeholder="Select subject" />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="bg-slate-900 border-slate-800 text-white">
                       {subjects.map((subject) => (
                         <SelectItem key={subject.id} value={subject.id.toString()}>
                           {subject.subject_name}
@@ -282,12 +288,12 @@ export default function ExamsPage() {
                 </div>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="class">Class *</Label>
+                <Label htmlFor="class" className="text-slate-400 text-[10px] uppercase font-bold">Targeted Class Unit *</Label>
                 <Select value={newExam.classId} onValueChange={(value) => setNewExam({ ...newExam, classId: value })}>
-                  <SelectTrigger id="class">
+                  <SelectTrigger id="class" className="bg-slate-800 border-slate-700">
                     <SelectValue placeholder="Select class" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="bg-slate-900 border-slate-800 text-white">
                     {classes.map((cls) => (
                       <SelectItem key={cls.id} value={cls.id.toString()}>
                         {cls.class_name} - {cls.section}
@@ -298,19 +304,21 @@ export default function ExamsPage() {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="examDate">Date *</Label>
+                  <Label htmlFor="examDate" className="text-slate-400 text-[10px] uppercase font-bold">Scheduled Date *</Label>
                   <Input
                     id="examDate"
                     type="date"
+                    className="bg-slate-800 border-slate-700 focus:ring-indigo-500"
                     value={newExam.examDate}
                     onChange={(e) => setNewExam({ ...newExam, examDate: e.target.value })}
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="duration">Duration (min)</Label>
+                  <Label htmlFor="duration" className="text-slate-400 text-[10px] uppercase font-bold">Temporal Window (min)</Label>
                   <Input
                     id="duration"
                     type="number"
+                    className="bg-slate-800 border-slate-700 focus:ring-indigo-500"
                     placeholder="90"
                     value={newExam.durationMinutes}
                     onChange={(e) => setNewExam({ ...newExam, durationMinutes: e.target.value })}
@@ -318,32 +326,34 @@ export default function ExamsPage() {
                 </div>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="totalMarks">Total Marks</Label>
+                <Label htmlFor="totalMarks" className="text-slate-400 text-[10px] uppercase font-bold">Maximum Score</Label>
                 <Input
                   id="totalMarks"
                   type="number"
+                  className="bg-slate-800 border-slate-700 focus:ring-indigo-500"
                   placeholder="100"
                   value={newExam.totalMarks}
                   onChange={(e) => setNewExam({ ...newExam, totalMarks: e.target.value })}
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="description">Description (Optional)</Label>
+                <Label htmlFor="description" className="text-slate-400 text-[10px] uppercase font-bold">Assessment Briefing (Optional)</Label>
                 <Textarea
                   id="description"
-                  placeholder="Additional details about the exam..."
+                  className="bg-slate-800 border-slate-700 focus:ring-indigo-500"
+                  placeholder="Explanatory notes regarding the assessment objectives..."
                   value={newExam.description}
                   onChange={(e) => setNewExam({ ...newExam, description: e.target.value })}
                 />
               </div>
             </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setOpen(false)}>
-                Cancel
+            <DialogFooter className="border-t border-slate-800 pt-6">
+              <Button variant="ghost" onClick={() => setOpen(false)} className="text-slate-400 hover:text-white hover:bg-slate-800">
+                Abort
               </Button>
-              <Button onClick={handleCreateExam} disabled={saving}>
+              <Button onClick={handleCreateExam} disabled={saving} className="bg-indigo-600 hover:bg-indigo-700 font-bold px-8">
                 {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Create Exam
+                Authorize Protocol
               </Button>
             </DialogFooter>
           </DialogContent>
@@ -351,56 +361,37 @@ export default function ExamsPage() {
       </div>
 
       <div className="grid gap-6 md:grid-cols-4">
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-muted-foreground text-sm">Total Exams</p>
-                <p className="font-bold text-2xl">{stats.total}</p>
+        {[
+          { label: "Total Exams", value: stats.total, icon: ClipboardList, color: "indigo" },
+          { label: "Pending Tests", value: stats.upcoming, icon: Calendar, color: "blue" },
+          { label: "Records Processed", value: stats.completed, icon: Clock, color: "emerald" },
+          { label: "Mean Performance", value: `${stats.averageScore}%`, icon: GraduationCap, color: "purple" }
+        ].map((stat, i) => (
+          <Card key={i} className="group relative overflow-hidden border-slate-800 bg-slate-900/40 backdrop-blur-md transition-all hover:bg-slate-900/60 border-0 shadow-xl">
+            <div className={cn("absolute -right-2 -top-2 h-16 w-16 rounded-full opacity-5 blur-xl transition-opacity group-hover:opacity-20", `bg-${stat.color}-500`)}></div>
+            <CardContent className="pt-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-slate-500 text-[10px] uppercase font-bold tracking-widest">{stat.label}</p>
+                  <p className="font-black text-3xl text-white tracking-tighter mt-1">{stat.value}</p>
+                </div>
+                <div className={cn("p-3 rounded-2xl border bg-slate-950/50",
+                  stat.color === "indigo" ? "text-indigo-400 border-indigo-500/20" :
+                    stat.color === "blue" ? "text-blue-400 border-blue-500/20" :
+                      stat.color === "emerald" ? "text-emerald-400 border-emerald-500/20" :
+                        "text-purple-400 border-purple-500/20")}>
+                  <stat.icon className="h-6 w-6" />
+                </div>
               </div>
-              <ClipboardList className="h-8 w-8 text-primary" />
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-muted-foreground text-sm">Upcoming</p>
-                <p className="font-bold text-2xl">{stats.upcoming}</p>
-              </div>
-              <Calendar className="h-8 w-8 text-blue-500" />
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-muted-foreground text-sm">Completed</p>
-                <p className="font-bold text-2xl">{stats.completed}</p>
-              </div>
-              <Clock className="h-8 w-8 text-green-500" />
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-muted-foreground text-sm">Average Score</p>
-                <p className="font-bold text-2xl">{stats.averageScore}%</p>
-              </div>
-              <ClipboardList className="h-8 w-8 text-purple-500" />
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        ))}
       </div>
 
-      <Tabs defaultValue="exams" className="w-full">
-        <TabsList className="grid w-full grid-cols-2 max-w-md">
-          <TabsTrigger value="exams">Exam Schedule</TabsTrigger>
-          <TabsTrigger value="results">Results</TabsTrigger>
+      <Tabs defaultValue="exams" className="w-full space-y-8">
+        <TabsList className="bg-slate-950/50 p-1 border border-slate-800 rounded-2xl w-full max-w-sm">
+          <TabsTrigger value="exams" className="rounded-xl data-[state=active]:bg-indigo-600 data-[state=active]:text-white transition-all py-2.5">Schedule</TabsTrigger>
+          <TabsTrigger value="results" className="rounded-xl data-[state=active]:bg-indigo-600 data-[state=active]:text-white transition-all py-2.5">Analytical Data</TabsTrigger>
         </TabsList>
 
         <TabsContent value="exams" className="space-y-4">

@@ -16,8 +16,9 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
-import { Megaphone, Plus, Calendar, AlertCircle, Bell, Trophy, Trash2, Loader2 } from "lucide-react"
+import { Megaphone, Plus, Calendar, AlertCircle, Bell, Trophy, Trash2, Loader2, Target } from "lucide-react"
 import { toast } from "sonner"
+import { cn } from "@/lib/utils"
 
 interface Announcement {
   id: number
@@ -169,30 +170,35 @@ export default function AnnouncementsPage() {
   }
 
   return (
-    <div className="flex flex-col gap-8 p-8">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="font-semibold text-3xl text-balance">Announcements</h1>
-          <p className="text-muted-foreground">View and manage school announcements</p>
+    <div className="flex flex-col gap-8 p-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+        <div className="space-y-1">
+          <div className="flex items-center gap-2 text-indigo-400 text-sm font-bold uppercase tracking-widest">
+            <Megaphone className="h-4 w-4" />
+            <span>Institutional Broadcast</span>
+          </div>
+          <h1 className="text-4xl font-black text-white tracking-tighter">Announcements</h1>
+          <p className="text-slate-400 max-w-md">Distribute critical updates, academic notifications, and event alerts across the institutional network.</p>
         </div>
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild>
-            <Button>
+            <Button className="bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg shadow-indigo-500/20">
               <Plus className="mr-2 h-4 w-4" />
-              New Announcement
+              New Broadcast
             </Button>
           </DialogTrigger>
-          <DialogContent className="sm:max-w-[600px]">
+          <DialogContent className="sm:max-w-[600px] bg-slate-900 border-slate-800 text-white shadow-2xl">
             <form onSubmit={handleSubmit}>
               <DialogHeader>
-                <DialogTitle>Create New Announcement</DialogTitle>
-                <DialogDescription>Post a new announcement for students, teachers, or parents</DialogDescription>
+                <DialogTitle className="text-2xl font-bold tracking-tight text-white">Broadcast Protocol</DialogTitle>
+                <DialogDescription className="text-slate-400 font-medium">Configure and dispatch a system-wide announcement.</DialogDescription>
               </DialogHeader>
-              <div className="grid gap-4 py-4">
+              <div className="grid gap-4 py-6">
                 <div className="space-y-2">
-                  <Label htmlFor="title">Title</Label>
+                  <Label htmlFor="title" className="text-slate-400 text-[10px] uppercase font-bold">Protocol Title</Label>
                   <Input
                     id="title"
+                    className="bg-slate-800 border-slate-700 focus:ring-indigo-500 text-white"
                     placeholder="Enter announcement title"
                     required
                     value={formData.title}
@@ -200,9 +206,10 @@ export default function AnnouncementsPage() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="content">Content</Label>
+                  <Label htmlFor="content" className="text-slate-400 text-[10px] uppercase font-bold">Intelligence Brief</Label>
                   <Textarea
                     id="content"
+                    className="bg-slate-800 border-slate-700 focus:ring-indigo-500 text-white"
                     placeholder="Enter announcement content"
                     rows={4}
                     required
@@ -212,15 +219,15 @@ export default function AnnouncementsPage() {
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="type">Type</Label>
+                    <Label htmlFor="type" className="text-slate-400 text-[10px] uppercase font-bold">Category</Label>
                     <Select
                       value={formData.announcementType}
                       onValueChange={(val) => setFormData({ ...formData, announcementType: val })}
                     >
-                      <SelectTrigger id="type">
+                      <SelectTrigger id="type" className="bg-slate-800 border-slate-700">
                         <SelectValue placeholder="Select type" />
                       </SelectTrigger>
-                      <SelectContent>
+                      <SelectContent className="bg-slate-900 border-slate-800 text-white">
                         <SelectItem value="general">General</SelectItem>
                         <SelectItem value="academic">Academic</SelectItem>
                         <SelectItem value="event">Event</SelectItem>
@@ -230,15 +237,15 @@ export default function AnnouncementsPage() {
                     </Select>
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="priority">Priority</Label>
+                    <Label htmlFor="priority" className="text-slate-400 text-[10px] uppercase font-bold">Priority Level</Label>
                     <Select
                       value={formData.priority}
                       onValueChange={(val) => setFormData({ ...formData, priority: val })}
                     >
-                      <SelectTrigger id="priority">
+                      <SelectTrigger id="priority" className="bg-slate-800 border-slate-700">
                         <SelectValue placeholder="Select priority" />
                       </SelectTrigger>
-                      <SelectContent>
+                      <SelectContent className="bg-slate-900 border-slate-800 text-white">
                         <SelectItem value="high">High</SelectItem>
                         <SelectItem value="medium">Medium</SelectItem>
                         <SelectItem value="low">Low</SelectItem>
@@ -247,15 +254,15 @@ export default function AnnouncementsPage() {
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="audience">Target Audience</Label>
+                  <Label htmlFor="audience" className="text-slate-400 text-[10px] uppercase font-bold">Target Audience</Label>
                   <Select
                     value={formData.targetAudience}
                     onValueChange={(val) => setFormData({ ...formData, targetAudience: val })}
                   >
-                    <SelectTrigger id="audience">
+                    <SelectTrigger id="audience" className="bg-slate-800 border-slate-700">
                       <SelectValue placeholder="Select audience" />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="bg-slate-900 border-slate-800 text-white">
                       <SelectItem value="all">Everyone</SelectItem>
                       <SelectItem value="students">Students</SelectItem>
                       <SelectItem value="teachers">Teachers</SelectItem>
@@ -264,22 +271,23 @@ export default function AnnouncementsPage() {
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="expiresAt">Expires At (Optional)</Label>
+                  <Label htmlFor="expiresAt" className="text-slate-400 text-[10px] uppercase font-bold">Expiration Synchrony (Optional)</Label>
                   <Input
                     id="expiresAt"
                     type="datetime-local"
+                    className="bg-slate-800 border-slate-700 focus:ring-indigo-500 text-white"
                     value={formData.expiresAt}
                     onChange={(e) => setFormData({ ...formData, expiresAt: e.target.value })}
                   />
                 </div>
               </div>
-              <div className="flex justify-end gap-2">
-                <Button type="button" variant="outline" onClick={() => setOpen(false)}>
-                  Cancel
+              <div className="flex justify-end gap-3 border-t border-slate-800 pt-6">
+                <Button type="button" variant="ghost" onClick={() => setOpen(false)} className="text-slate-400 hover:text-white hover:bg-slate-800">
+                  Abort
                 </Button>
-                <Button type="submit" disabled={submitting}>
+                <Button type="submit" disabled={submitting} className="bg-indigo-600 hover:bg-indigo-700 font-bold px-8">
                   {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  Publish
+                  Dispatch Broadcast
                 </Button>
               </div>
             </form>
@@ -288,59 +296,41 @@ export default function AnnouncementsPage() {
       </div>
 
       <div className="grid gap-6 md:grid-cols-4">
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-muted-foreground text-sm">Total</p>
-                <p className="font-bold text-2xl">{announcements.length}</p>
+        {[
+          { label: "Total Active", value: announcements.length, icon: Megaphone, color: "indigo" },
+          { label: "High Priority", value: announcements.filter(a => a.priority === "high").length, icon: AlertCircle, color: "rose" },
+          { label: "Student Targeted", value: announcements.filter(a => a.target_audience === "students").length, icon: Bell, color: "emerald" },
+          { label: "Event Logs", value: announcements.filter(a => a.announcement_type === "event").length, icon: Trophy, color: "blue" }
+        ].map((stat, i) => (
+          <Card key={i} className="group relative overflow-hidden border-slate-800 bg-slate-900/40 backdrop-blur-md transition-all hover:bg-slate-900/60 border-0 shadow-xl">
+            <div className={cn("absolute -right-2 -top-2 h-16 w-16 rounded-full opacity-5 blur-xl transition-opacity group-hover:opacity-20", `bg-${stat.color}-500`)}></div>
+            <CardContent className="pt-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-slate-500 text-[10px] uppercase font-bold tracking-widest">{stat.label}</p>
+                  <p className="font-black text-3xl text-white tracking-tighter mt-1">{stat.value}</p>
+                </div>
+                <div className={cn("p-3 rounded-2xl border bg-slate-950/50",
+                  stat.color === "indigo" ? "text-indigo-400 border-indigo-500/20" :
+                    stat.color === "rose" ? "text-rose-400 border-rose-500/20" :
+                      stat.color === "emerald" ? "text-emerald-400 border-emerald-500/20" :
+                        "text-blue-400 border-blue-500/20")}>
+                  <stat.icon className="h-6 w-6" />
+                </div>
               </div>
-              <Megaphone className="h-8 w-8 text-primary" />
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-muted-foreground text-sm">Priority: High</p>
-                <p className="font-bold text-2xl">
-                  {announcements.filter(a => a.priority === "high").length}
-                </p>
-              </div>
-              <AlertCircle className="h-8 w-8 text-red-500" />
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-muted-foreground text-sm">For Students</p>
-                <p className="font-bold text-2xl">
-                  {announcements.filter(a => a.target_audience === "students").length}
-                </p>
-              </div>
-              <Bell className="h-8 w-8 text-green-500" />
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-muted-foreground text-sm">Events</p>
-                <p className="font-bold text-2xl">
-                  {announcements.filter(a => a.announcement_type === "event").length}
-                </p>
-              </div>
-              <Trophy className="h-8 w-8 text-blue-500" />
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        ))}
       </div>
 
-      <div className="space-y-4">
+      <div className="space-y-6">
+        <div className="flex items-center justify-between bg-slate-950/40 p-4 rounded-2xl border border-slate-800 backdrop-blur-sm">
+          <div className="flex items-center gap-2">
+            <Megaphone className="h-4 w-4 text-indigo-400" />
+            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Active Broadcast Stream</span>
+          </div>
+        </div>
+
         {loading ? (
           <div className="flex justify-center p-12">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />

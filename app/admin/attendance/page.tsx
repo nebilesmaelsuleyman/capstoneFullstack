@@ -8,8 +8,9 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
-import { CalendarIcon, CheckCircle2, XCircle, Clock, AlertCircle, Loader2 } from "lucide-react"
+import { CalendarIcon, CheckCircle2, XCircle, Clock, AlertCircle, Loader2, ClipboardCheck, Users, Search, Download } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
+import { cn } from "@/lib/utils"
 
 interface Class {
   id: number
@@ -68,11 +69,6 @@ export default function AttendancePage() {
       }
     } catch (error) {
       console.error('Error fetching classes:', error)
-      toast({
-        title: "Error",
-        description: "Failed to fetch classes",
-        variant: "destructive"
-      })
     }
   }
 
@@ -94,11 +90,6 @@ export default function AttendancePage() {
       }
     } catch (error) {
       console.error('Error fetching attendance:', error)
-      toast({
-        title: "Error",
-        description: "Failed to fetch attendance data",
-        variant: "destructive"
-      })
     } finally {
       setLoading(false)
     }
@@ -116,24 +107,15 @@ export default function AttendancePage() {
   }
 
   const updateStudentStatus = (studentId: number, status: string) => {
-    setStudents(prev => prev.map(s =>
-      s.student_id === studentId ? { ...s, status } : s
-    ))
-    calculateStats(students.map(s =>
-      s.student_id === studentId ? { ...s, status } : s
-    ))
+    setStudents(prev => {
+      const updated = prev.map(s => s.student_id === studentId ? { ...s, status } : s);
+      calculateStats(updated);
+      return updated;
+    })
   }
 
   const handleSaveAttendance = async () => {
-    if (!selectedClass || !selectedDate) {
-      toast({
-        title: "Error",
-        description: "Please select a class and date",
-        variant: "destructive"
-      })
-      return
-    }
-
+    if (!selectedClass || !selectedDate) return
     setSaving(true)
     try {
       const records = students
@@ -158,222 +140,188 @@ export default function AttendancePage() {
       })
 
       if (res.ok) {
-        toast({
-          title: "Success",
-          description: "Attendance saved successfully",
-        })
+        toast({ title: "Success", description: "Attendance protocols synchronized" })
         fetchClassAttendance()
-      } else {
-        throw new Error('Failed to save attendance')
       }
     } catch (error) {
       console.error('Error saving attendance:', error)
-      toast({
-        title: "Error",
-        description: "Failed to save attendance",
-        variant: "destructive"
-      })
     } finally {
       setSaving(false)
     }
   }
 
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case "present":
-        return <CheckCircle2 className="h-5 w-5 text-green-500" />
-      case "absent":
-        return <XCircle className="h-5 w-5 text-red-500" />
-      case "late":
-        return <Clock className="h-5 w-5 text-yellow-500" />
-      case "excused":
-        return <AlertCircle className="h-5 w-5 text-blue-500" />
-      default:
-        return null
-    }
-  }
-
-  const getStatusBadge = (status: string) => {
-    const variants: any = {
-      present: "default",
-      absent: "destructive",
-      late: "secondary",
-      excused: "outline",
-      not_marked: "outline"
-    }
-    return (
-      <Badge variant={variants[status]} className="capitalize">
-        {status === 'not_marked' ? 'Not Marked' : status}
-      </Badge>
-    )
-  }
-
   return (
-    <div className="flex flex-col gap-8 p-8">
-      <div>
-        <h1 className="font-semibold text-3xl text-balance">Attendance Management</h1>
-        <p className="text-muted-foreground">Mark and track student attendance</p>
+    <div className="flex flex-col gap-8 p-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+        <div className="space-y-1">
+          <div className="flex items-center gap-2 text-indigo-400 text-sm font-bold uppercase tracking-widest">
+            <ClipboardCheck className="h-4 w-4" />
+            <span>Operational Continuity</span>
+          </div>
+          <h1 className="text-4xl font-black text-white tracking-tighter">Attendance Registry</h1>
+          <p className="text-slate-400 max-w-md">Monitor institutional presence, verify personnel location, and maintain daily activity logs.</p>
+        </div>
+
+        <div className="flex items-center gap-3">
+          <Button variant="outline" className="bg-slate-900/50 border-slate-800 text-slate-300 hover:text-white">
+            <Download className="mr-2 h-4 w-4" /> Export Logs
+          </Button>
+          <Button onClick={handleSaveAttendance} disabled={saving || !selectedClass} className="bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg shadow-indigo-500/20">
+            {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <CheckCircle2 className="mr-2 h-4 w-4" />}
+            Synchronize Records
+          </Button>
+        </div>
       </div>
 
       <div className="grid gap-6 md:grid-cols-4">
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-muted-foreground text-sm">Present</p>
-                <p className="font-bold text-2xl">{stats.present}</p>
+        {[
+          { label: "Present Today", value: stats.present, icon: CheckCircle2, color: "emerald" },
+          { label: "Absent Logs", value: stats.absent, icon: XCircle, color: "rose" },
+          { label: "Delayed Entry", value: stats.late, icon: Clock, color: "yellow" },
+          { label: "Retention Rate", value: `${stats.percentage.toFixed(1)}%`, icon: CalendarIcon, color: "indigo" }
+        ].map((stat, i) => (
+          <Card key={i} className="group relative overflow-hidden border-slate-800 bg-slate-900/40 backdrop-blur-md transition-all hover:bg-slate-900/60 border-0 shadow-xl">
+            <div className={cn("absolute -right-2 -top-2 h-16 w-16 rounded-full opacity-5 blur-xl transition-opacity group-hover:opacity-20", `bg-${stat.color}-500`)}></div>
+            <CardContent className="pt-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-slate-500 text-[10px] uppercase font-bold tracking-widest">{stat.label}</p>
+                  <p className="font-black text-3xl text-white tracking-tighter mt-1">{stat.value}</p>
+                </div>
+                <div className={cn("p-3 rounded-2xl border bg-slate-950/50",
+                  stat.color === "emerald" ? "text-emerald-400 border-emerald-500/20" :
+                    stat.color === "rose" ? "text-rose-400 border-rose-500/20" :
+                      stat.color === "yellow" ? "text-yellow-400 border-yellow-500/20" :
+                        "text-indigo-400 border-indigo-500/20")}>
+                  <stat.icon className="h-6 w-6" />
+                </div>
               </div>
-              <CheckCircle2 className="h-8 w-8 text-green-500" />
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-muted-foreground text-sm">Absent</p>
-                <p className="font-bold text-2xl">{stats.absent}</p>
-              </div>
-              <XCircle className="h-8 w-8 text-red-500" />
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-muted-foreground text-sm">Late</p>
-                <p className="font-bold text-2xl">{stats.late}</p>
-              </div>
-              <Clock className="h-8 w-8 text-yellow-500" />
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-muted-foreground text-sm">Attendance Rate</p>
-                <p className="font-bold text-2xl">{stats.percentage.toFixed(1)}%</p>
-              </div>
-              <CalendarIcon className="h-8 w-8 text-primary" />
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        ))}
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Mark Attendance</CardTitle>
-          <CardDescription>Select class and date to mark attendance</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          <div className="flex gap-4">
-            <div className="flex-1 space-y-2">
-              <Label htmlFor="date">Date</Label>
-              <Input
-                id="date"
-                type="date"
-                value={selectedDate}
-                onChange={(e) => setSelectedDate(e.target.value)}
-              />
-            </div>
-            <div className="flex-1 space-y-2">
-              <Label htmlFor="class">Class</Label>
-              <Select value={selectedClass} onValueChange={setSelectedClass}>
-                <SelectTrigger id="class">
-                  <SelectValue placeholder="Select a class" />
-                </SelectTrigger>
-                <SelectContent>
-                  {classes.map((cls) => (
-                    <SelectItem key={cls.id} value={cls.id.toString()}>
-                      {cls.class_name} - {cls.section}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+      <div className="flex flex-col md:flex-row items-end gap-6 bg-slate-950/40 p-6 rounded-3xl border border-slate-800 backdrop-blur-sm shadow-2xl">
+        <div className="flex-1 space-y-3">
+          <Label className="text-slate-400 text-xs font-bold uppercase tracking-widest">Temporal Reference</Label>
+          <div className="relative group">
+            <CalendarIcon className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500 group-focus-within:text-indigo-400 transition-colors" />
+            <Input
+              type="date"
+              className="bg-slate-900 border-slate-700 pl-11 h-12 rounded-xl focus:ring-indigo-500/20"
+              value={selectedDate}
+              onChange={(e) => setSelectedDate(e.target.value)}
+            />
           </div>
+        </div>
+        <div className="flex-1 space-y-3">
+          <Label className="text-slate-400 text-xs font-bold uppercase tracking-widest">Target Class Unit</Label>
+          <Select value={selectedClass} onValueChange={setSelectedClass}>
+            <SelectTrigger className="bg-slate-900 border-slate-700 h-12 rounded-xl focus:ring-indigo-500/20">
+              <SelectValue placeholder="Select target unit" />
+            </SelectTrigger>
+            <SelectContent className="bg-slate-900 border-slate-800 text-white">
+              {classes.map((cls) => (
+                <SelectItem key={cls.id} value={cls.id.toString()}>
+                  {cls.class_name} - Section {cls.section} (Grade {cls.grade_level})
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <Button variant="ghost" className="h-12 px-6 rounded-xl border border-slate-800 text-slate-400 hover:text-white hover:bg-slate-800">
+          <Search className="mr-2 h-4 w-4" /> Filter Personnel
+        </Button>
+      </div>
 
+      <Card className="bg-slate-900/40 border-slate-800 shadow-2xl overflow-hidden rounded-3xl backdrop-blur-xl">
+        <CardContent className="p-0">
           {loading ? (
-            <div className="flex items-center justify-center py-12">
-              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <div className="flex flex-col items-center justify-center py-24 space-y-4">
+              <div className="h-10 w-10 animate-spin rounded-full border-4 border-indigo-500 border-r-transparent"></div>
+              <p className="text-slate-500 font-bold animate-pulse tracking-widest text-[10px] uppercase">Retrieving Presence Data...</p>
             </div>
           ) : students.length > 0 ? (
-            <>
-              <div className="rounded-lg border">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Roll Number</TableHead>
-                      <TableHead>Student Name</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Actions</TableHead>
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader className="bg-slate-950/50">
+                  <TableRow className="border-slate-800 hover:bg-transparent">
+                    <TableHead className="text-slate-400 font-bold uppercase text-[10px] tracking-widest pl-8 py-5">Personnel Identification</TableHead>
+                    <TableHead className="text-slate-400 font-bold uppercase text-[10px] tracking-widest">Presence Status</TableHead>
+                    <TableHead className="text-right text-slate-400 font-bold uppercase text-[10px] tracking-widest pr-8">Status Modification</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {students.map((student) => (
+                    <TableRow key={student.student_id} className="border-slate-800 hover:bg-slate-800/30 transition-colors group">
+                      <TableCell className="pl-8 py-5">
+                        <div className="flex items-center gap-4">
+                          <div className="h-12 w-12 rounded-2xl bg-gradient-to-br from-slate-800 to-slate-950 border border-slate-700 flex items-center justify-center text-indigo-400 font-black text-sm shadow-xl transition-transform group-hover:scale-110">
+                            {student.first_name[0]}{student.last_name[0]}
+                          </div>
+                          <div className="flex flex-col">
+                            <span className="font-bold text-white group-hover:text-indigo-400 transition-colors uppercase tracking-tighter">{student.first_name} {student.last_name}</span>
+                            <span className="text-[10px] text-slate-500 font-mono flex items-center gap-1.5 mt-1">
+                              <Users className="h-3 w-3" />
+                              ID: {student.roll_number}
+                            </span>
+                          </div>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-3">
+                          <div className={cn("h-1.5 w-1.5 rounded-full",
+                            student.status === 'present' ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]' :
+                              student.status === 'absent' ? 'bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.5)]' :
+                                student.status === 'late' ? 'bg-yellow-500 shadow-[0_0_8px_rgba(234,179,8,0.5)]' :
+                                  'bg-slate-500')}></div>
+                          <Badge className={cn("px-3 py-0.5 rounded-lg text-[10px] font-black uppercase tracking-widest",
+                            student.status === 'present' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' :
+                              student.status === 'absent' ? 'bg-rose-500/10 text-rose-400 border-rose-500/20' :
+                                student.status === 'late' ? 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20' :
+                                  'bg-slate-800 text-slate-400 border-slate-700')}>
+                            {student.status || 'not initialized'}
+                          </Badge>
+                        </div>
+                      </TableCell>
+                      <TableCell className="pr-8 text-right">
+                        <div className="flex items-center justify-end gap-2">
+                          {[
+                            { id: 'present', label: 'Present', color: 'emerald' },
+                            { id: 'absent', label: 'Absent', color: 'rose' },
+                            { id: 'late', label: 'Late', color: 'yellow' }
+                          ].map((act) => (
+                            <Button
+                              key={act.id}
+                              size="sm"
+                              className={cn("h-9 rounded-xl font-bold text-[10px] uppercase px-4 transition-all duration-300",
+                                student.status === act.id
+                                  ? `bg-${act.color}-600 text-white shadow-lg`
+                                  : `bg-slate-900 text-slate-500 hover:bg-${act.color}-500/10 hover:text-${act.color}-400 border border-slate-800`
+                              )}
+                              onClick={() => updateStudentStatus(student.student_id, act.id)}
+                            >
+                              {act.label}
+                            </Button>
+                          ))}
+                        </div>
+                      </TableCell>
                     </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {students.map((student) => (
-                      <TableRow key={student.student_id}>
-                        <TableCell className="font-medium">{student.roll_number}</TableCell>
-                        <TableCell>{student.first_name} {student.last_name}</TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-2">
-                            {getStatusIcon(student.status)}
-                            {getStatusBadge(student.status)}
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex gap-2">
-                            <Button
-                              size="sm"
-                              variant={student.status === 'present' ? 'default' : 'outline'}
-                              onClick={() => updateStudentStatus(student.student_id, 'present')}
-                            >
-                              Present
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant={student.status === 'absent' ? 'destructive' : 'outline'}
-                              onClick={() => updateStudentStatus(student.student_id, 'absent')}
-                            >
-                              Absent
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant={student.status === 'late' ? 'secondary' : 'outline'}
-                              onClick={() => updateStudentStatus(student.student_id, 'late')}
-                            >
-                              Late
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant={student.status === 'excused' ? 'outline' : 'outline'}
-                              onClick={() => updateStudentStatus(student.student_id, 'excused')}
-                            >
-                              Excused
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
-
-              <div className="flex justify-end">
-                <Button onClick={handleSaveAttendance} disabled={saving}>
-                  {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  Save Attendance
-                </Button>
-              </div>
-            </>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
           ) : selectedClass ? (
-            <div className="py-12 text-center text-muted-foreground">
-              No students found in this class
+            <div className="py-24 text-center space-y-4">
+              <AlertCircle className="h-12 w-12 text-slate-700 mx-auto" />
+              <p className="text-slate-500 font-bold uppercase tracking-widest text-[10px]">No personnel detected in selected unit</p>
             </div>
           ) : (
-            <div className="py-12 text-center text-muted-foreground">
-              Please select a class to view students
+            <div className="py-24 text-center space-y-4">
+              <div className="h-12 w-12 rounded-full border-2 border-dashed border-slate-800 mx-auto flex items-center justify-center">
+                <CheckCircle2 className="h-6 w-6 text-slate-800" />
+              </div>
+              <p className="text-slate-500 font-bold uppercase tracking-widest text-[10px]">Awaiting terminal selection to initialize roster</p>
             </div>
           )}
         </CardContent>

@@ -23,9 +23,12 @@ export function useDashboardStats() {
           apiClient.getClasses(1, 1000),
         ])
 
-        const studentCount = studentsRes.data?.data?.length || 0
-        const teacherCount = teachersRes.data?.data?.length || 0
-        const classCount = classesRes.data?.data?.length || 0
+        // Students response is { data: { data: [...], total: ... } }
+        const studentCount = studentsRes.data?.data?.length || studentsRes.data?.length || 0
+        // Teachers response is an array directly
+        const teacherCount = Array.isArray(teachersRes.data) ? teachersRes.data.length : (teachersRes.data as any)?.length || 0
+        // Classes response is an array directly
+        const classCount = Array.isArray(classesRes.data) ? classesRes.data.length : (classesRes.data as any)?.length || 0
 
         setStats({
           totalStudents: studentCount,
