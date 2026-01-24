@@ -59,7 +59,7 @@ export default function AttendancePage() {
     try {
       const res = await fetch('http://localhost:4000/api/classes', {
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
+          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
         }
       })
       if (res.ok) {
@@ -83,7 +83,7 @@ export default function AttendancePage() {
         `http://localhost:4000/api/attendance/class/${selectedClass}?date=${selectedDate}`,
         {
           headers: {
-            'Authorization': `Bearer ${localStorage.getItem('token')}`
+            'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
           }
         }
       )
@@ -148,7 +148,7 @@ export default function AttendancePage() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
+          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
         },
         body: JSON.stringify({
           classId: parseInt(selectedClass),

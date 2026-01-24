@@ -89,9 +89,9 @@ export default function TimetablePage() {
   const fetchInitialData = async () => {
     try {
       const [classesRes, subjectsRes, teachersRes] = await Promise.all([
-        fetch("http://localhost:4000/api/classes", { headers: { Authorization: `Bearer ${localStorage.getItem("token")}` } }),
-        fetch("http://localhost:4000/api/subjects", { headers: { Authorization: `Bearer ${localStorage.getItem("token")}` } }),
-        fetch("http://localhost:4000/api/teachers", { headers: { Authorization: `Bearer ${localStorage.getItem("token")}` } }),
+        fetch("http://localhost:4000/api/classes", { headers: { Authorization: `Bearer ${localStorage.getItem("auth_token")}` } }),
+        fetch("http://localhost:4000/api/subjects", { headers: { Authorization: `Bearer ${localStorage.getItem("auth_token")}` } }),
+        fetch("http://localhost:4000/api/teachers", { headers: { Authorization: `Bearer ${localStorage.getItem("auth_token")}` } }),
       ])
 
       if (classesRes.ok) {
@@ -111,7 +111,7 @@ export default function TimetablePage() {
     setLoading(true)
     try {
       const res = await fetch(`http://localhost:4000/api/timetable/class/${classId}`, {
-        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
+        headers: { Authorization: `Bearer ${localStorage.getItem("auth_token")}` }
       })
       if (res.ok) {
         const data = await res.json()
@@ -133,7 +133,7 @@ export default function TimetablePage() {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
+          Authorization: `Bearer ${localStorage.getItem("auth_token")}`,
         },
         body: JSON.stringify({
           ...formData,
@@ -162,7 +162,7 @@ export default function TimetablePage() {
     try {
       const res = await fetch(`http://localhost:4000/api/timetable/${id}`, {
         method: "DELETE",
-        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
+        headers: { Authorization: `Bearer ${localStorage.getItem("auth_token")}` }
       })
       if (res.ok) {
         toast.success("Entry deleted")

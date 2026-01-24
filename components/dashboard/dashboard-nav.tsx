@@ -32,6 +32,8 @@ const navigation = [
   { name: "Settings", href: "/admin/settings", icon: Settings },
 ]
 
+import { logout } from "@/lib/auth-utils"
+
 export function DashboardNav() {
   const pathname = usePathname()
 
@@ -68,7 +70,10 @@ export function DashboardNav() {
       </nav>
 
       <div className="px-3 py-4">
-        <button className="flex w-full items-center gap-2.5 rounded-md px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-secondary/50 hover:text-foreground">
+        <button
+          onClick={() => logout()}
+          className="flex w-full items-center gap-2.5 rounded-md px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-secondary/50 hover:text-foreground"
+        >
           <LogOut className="h-4 w-4" />
           Sign Out
         </button>

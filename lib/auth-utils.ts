@@ -11,6 +11,8 @@ interface User {
     lastName: string
 }
 
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api"
+
 interface AuthResponse {
     user: User
     token: string
@@ -23,7 +25,7 @@ interface AuthResponse {
 export function getCurrentUser(): User | null {
     if (typeof window === 'undefined') return null
 
-    const userStr = localStorage.getItem('user')
+    const userStr = localStorage.getItem('user_data')
     if (!userStr) return null
 
     try {
@@ -40,7 +42,7 @@ export function getCurrentUser(): User | null {
  */
 export function getAuthToken(): string | null {
     if (typeof window === 'undefined') return null
-    return localStorage.getItem('token')
+    return localStorage.getItem('auth_token')
 }
 
 /**
@@ -78,7 +80,7 @@ export function getUserId(): number | null {
 export async function getStudentIdFromUserId(userId: number): Promise<number | null> {
     try {
         const token = getAuthToken()
-        const response = await fetch(`http://localhost:3001/students/by-user/${userId}`, {
+        const response = await fetch(`${API_BASE_URL}/students/by-user/${userId}`, {
             headers: {
                 'Authorization': `Bearer ${token}`
             }
@@ -104,7 +106,7 @@ export async function getStudentIdFromUserId(userId: number): Promise<number | n
 export async function getTeacherIdFromUserId(userId: number): Promise<number | null> {
     try {
         const token = getAuthToken()
-        const response = await fetch(`http://localhost:3001/teachers/by-user/${userId}`, {
+        const response = await fetch(`${API_BASE_URL}/teachers/by-user/${userId}`, {
             headers: {
                 'Authorization': `Bearer ${token}`
             }
@@ -127,8 +129,8 @@ export async function getTeacherIdFromUserId(userId: number): Promise<number | n
 export function logout(): void {
     if (typeof window === 'undefined') return
 
-    localStorage.removeItem('token')
-    localStorage.removeItem('user')
+    localStorage.removeItem('auth_token')
+    localStorage.removeItem('user_data')
     window.location.href = '/login'
 }
 
@@ -139,8 +141,8 @@ export function logout(): void {
 export function saveAuthData(authData: AuthResponse): void {
     if (typeof window === 'undefined') return
 
-    localStorage.setItem('token', authData.token)
-    localStorage.setItem('user', JSON.stringify(authData.user))
+    localStorage.setItem('auth_token', authData.token)
+    localStorage.setItem('user_data', JSON.stringify(authData.user))
 }
 
 /**

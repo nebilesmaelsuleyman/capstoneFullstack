@@ -66,7 +66,7 @@ export function CreateClassDialog() {
 
     async function onSubmit(values: z.infer<typeof formSchema>) {
         try {
-            const token = localStorage.getItem('token');
+            const token = localStorage.getItem('auth_token');
             const response = await fetch('http://localhost:4000/api/classes', {
                 method: 'POST',
                 headers: {

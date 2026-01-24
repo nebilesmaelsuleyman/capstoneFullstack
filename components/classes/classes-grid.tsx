@@ -25,7 +25,7 @@ export function ClassesGrid() {
   useEffect(() => {
     async function fetchClasses() {
       try {
-        const token = localStorage.getItem('token');
+        const token = localStorage.getItem('auth_token');
         const response = await fetch('http://localhost:4000/api/classes', {
           headers: {
             'Authorization': `Bearer ${token}`

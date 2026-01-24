@@ -52,7 +52,7 @@ export default function AnnouncementsPage() {
     try {
       const response = await fetch("http://localhost:4000/api/announcements", {
         headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
+          Authorization: `Bearer ${localStorage.getItem("auth_token")}`,
         },
       })
       if (!response.ok) throw new Error("Failed to fetch announcements")
@@ -78,7 +78,7 @@ export default function AnnouncementsPage() {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
+          Authorization: `Bearer ${localStorage.getItem("auth_token")}`,
         },
         body: JSON.stringify(formData),
       })
@@ -111,7 +111,7 @@ export default function AnnouncementsPage() {
       const response = await fetch(`http://localhost:4000/api/announcements/${id}`, {
         method: "DELETE",
         headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
+          Authorization: `Bearer ${localStorage.getItem("auth_token")}`,
         },
       })
 
