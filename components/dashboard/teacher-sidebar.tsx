@@ -8,6 +8,7 @@ import {
     BookOpen,
     Users,
     Award,
+    ClipboardCheck,
     User,
     LogOut
 } from "lucide-react"
@@ -19,6 +20,7 @@ const navigation = [
     { name: "Timetable", id: "timetable", icon: Calendar },
     { name: "My Classes", id: "classes", icon: BookOpen },
     { name: "Grades", id: "grades", icon: Award },
+    { name: "Attendance", id: "attendance", icon: ClipboardCheck },
     { name: "Profile", id: "profile", icon: User },
 ]
 

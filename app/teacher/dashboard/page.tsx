@@ -23,8 +23,9 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select"
-import { BookOpen, Calendar, GraduationCap, Plus, User, Users, Award, TrendingUp, Sparkles, Bell, Megaphone, Trophy, AlertCircle, Clock, Loader2 } from "lucide-react"
+import { BookOpen, Calendar, GraduationCap, Plus, User, Users, Award, TrendingUp, Sparkles, Bell, Megaphone, Trophy, AlertCircle, Clock, Loader2, ClipboardCheck, Check, X } from "lucide-react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { cn } from "@/lib/utils"
 import { getCurrentUser, getUserId, getTeacherIdFromUserId, authenticatedFetch, logout } from "@/lib/auth-utils"
 
 interface Teacher {
@@ -119,6 +120,10 @@ export default function TeacherDashboard() {
     })
     const [activeSection, setActiveSection] = useState("announcements")
     const [allSubjects, setAllSubjects] = useState<any[]>([])
+    const [isAttendanceDialogOpen, setIsAttendanceDialogOpen] = useState(false)
+    const [attendanceDate, setAttendanceDate] = useState(new Date().toISOString().split('T')[0])
+    const [classAttendance, setClassAttendance] = useState<any[]>([])
+    const [savingAttendance, setSavingAttendance] = useState(false)
 
     useEffect(() => {
         const handleNav = (e: any) => setActiveSection(e.detail)
@@ -278,6 +283,58 @@ export default function TeacherDashboard() {
         }
     }
 
+    const fetchClassAttendance = async (classId: number, date: string) => {
+        try {
+            const res = await fetch(`http://localhost:4000/api/attendance/class/${classId}?date=${date}`, {
+                headers: { 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` }
+            })
+            if (res.ok) {
+                const data = await res.json()
+                setClassAttendance(data.data || data)
+            }
+        } catch (error) {
+            console.error('Error fetching attendance:', error)
+        }
+    }
+
+    const handleMarkAttendance = (studentId: number, status: string) => {
+        setClassAttendance(classAttendance.map(s =>
+            s.student_id === studentId ? { ...s, status } : s
+        ))
+    }
+
+    const handleSaveAttendance = async () => {
+        if (!selectedClass) return
+        setSavingAttendance(true)
+        try {
+            const records = classAttendance.map(s => ({
+                studentId: s.student_id,
+                status: s.status === 'not_marked' ? 'present' : s.status,
+                remarks: s.remarks
+            }))
+
+            const res = await fetch(`http://localhost:4000/api/attendance/bulk/${selectedClass.id}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
+                },
+                body: JSON.stringify({
+                    date: attendanceDate,
+                    records
+                })
+            })
+
+            if (res.ok) {
+                fetchClassAttendance(selectedClass.id, attendanceDate)
+            }
+        } catch (error) {
+            console.error('Error saving attendance:', error)
+        } finally {
+            setSavingAttendance(false)
+        }
+    }
+
     const handleClassSelect = (classItem: Class) => {
         setSelectedClass(classItem)
         setGrades([])
@@ -415,9 +472,14 @@ export default function TeacherDashboard() {
                                         <div className="grid gap-2"><Label>Student</Label><Select value={newGrade.student_id} onValueChange={val => setNewGrade({ ...newGrade, student_id: val })}><SelectTrigger className="bg-slate-800"><SelectValue /></SelectTrigger><SelectContent className="bg-slate-800">{students.map(s => <SelectItem key={s.id} value={s.id.toString()}>{s.firstName} {s.lastName}</SelectItem>)}</SelectContent></Select></div>
                                         <div className="grid gap-2"><Label>Subject</Label><Select value={newGrade.subject_id} onValueChange={val => setNewGrade({ ...newGrade, subject_id: val })}><SelectTrigger className="bg-slate-800"><SelectValue placeholder="Select Subject" /></SelectTrigger><SelectContent className="bg-slate-800">{allSubjects.map(s => <SelectItem key={s.id} value={s.id.toString()}>{s.subject_name}</SelectItem>)}</SelectContent></Select></div>
                                         <div className="grid grid-cols-2 gap-4">
+                                            <div className="grid gap-2"><Label>Exam Type</Label><Select value={newGrade.exam_type} onValueChange={val => setNewGrade({ ...newGrade, exam_type: val })}><SelectTrigger className="bg-slate-800"><SelectValue placeholder="Select Type" /></SelectTrigger><SelectContent className="bg-slate-800"><SelectItem value="midterm">Midterm</SelectItem><SelectItem value="final">Final</SelectItem><SelectItem value="quiz">Quiz</SelectItem><SelectItem value="assignment">Assignment</SelectItem></SelectContent></Select></div>
+                                            <div className="grid gap-2"><Label>Exam Date</Label><Input type="date" value={newGrade.exam_date} onChange={e => setNewGrade({ ...newGrade, exam_date: e.target.value })} className="bg-slate-800" /></div>
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-4">
                                             <div className="grid gap-2"><Label>Grade</Label><Input type="number" value={newGrade.grade} onChange={e => setNewGrade({ ...newGrade, grade: e.target.value })} className="bg-slate-800" /></div>
                                             <div className="grid gap-2"><Label>Max</Label><Input type="number" value={newGrade.max_grade} onChange={e => setNewGrade({ ...newGrade, max_grade: e.target.value })} className="bg-slate-800" /></div>
                                         </div>
+                                        <div className="grid gap-2"><Label>Remarks</Label><Input value={newGrade.remarks} onChange={e => setNewGrade({ ...newGrade, remarks: e.target.value })} className="bg-slate-800" placeholder="Optional remarks" /></div>
                                     </div>
                                     <DialogFooter><Button onClick={handleCreateGrade}>Save Grade</Button></DialogFooter>
                                 </DialogContent>
@@ -429,6 +491,124 @@ export default function TeacherDashboard() {
                             <Select value={selectedClass?.id.toString() || ""} onValueChange={v => handleClassSelect(classes.find(c => c.id.toString() === v)!)}><SelectTrigger className="bg-slate-800"><SelectValue placeholder="Select Class" /></SelectTrigger><SelectContent className="bg-slate-800">{classes.map(c => <SelectItem key={c.id} value={c.id.toString()}>{c.class_name}</SelectItem>)}</SelectContent></Select>
                             <Select value={selectedSubject} onValueChange={v => { setSelectedSubject(v); if (selectedClass) fetchGradesForClass(selectedClass.id, v); }}><SelectTrigger className="bg-slate-800"><SelectValue placeholder="Select Subject" /></SelectTrigger><SelectContent className="bg-slate-800">{allSubjects.map(s => <SelectItem key={s.id.toString()} value={s.id.toString()}>{s.subject_name}</SelectItem>)}</SelectContent></Select>
                             <div className="space-y-2">{grades.map(g => (<div key={g.id} className="p-3 border border-slate-700 rounded-lg flex justify-between items-center"><div className="text-sm"><div>{g.first_name} {g.last_name}</div><div className="text-[10px] text-slate-500">{g.exam_type} • {new Date(g.exam_date).toLocaleDateString()}</div></div><div className="font-bold text-purple-400">{g.grade}/{g.max_grade}</div></div>))}</div>
+                        </div>
+                    </CardContent>
+                </Card>
+            )}
+
+            {activeSection === "attendance" && (
+                <Card className="border-0 bg-slate-800/50 backdrop-blur-xl shadow-xl">
+                    <CardHeader>
+                        <div className="flex justify-between items-center">
+                            <CardTitle className="text-white flex items-center gap-2">
+                                <ClipboardCheck className="h-6 w-6 text-green-400" />
+                                Student Attendance
+                            </CardTitle>
+                            <div className="flex gap-4 items-center">
+                                <Input
+                                    type="date"
+                                    value={attendanceDate}
+                                    onChange={(e) => {
+                                        setAttendanceDate(e.target.value);
+                                        if (selectedClass) fetchClassAttendance(selectedClass.id, e.target.value);
+                                    }}
+                                    className="bg-slate-800 border-slate-700 w-40"
+                                />
+                                <Button
+                                    onClick={handleSaveAttendance}
+                                    disabled={savingAttendance || !selectedClass || classAttendance.length === 0}
+                                    className="bg-green-600 hover:bg-green-700"
+                                >
+                                    {savingAttendance ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Check className="h-4 w-4 mr-2" />}
+                                    Save Attendance
+                                </Button>
+                            </div>
+                        </div>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="space-y-4">
+                            <Select
+                                value={selectedClass?.id.toString() || ""}
+                                onValueChange={v => {
+                                    const c = classes.find(c => c.id.toString() === v)!;
+                                    handleClassSelect(c);
+                                    fetchClassAttendance(c.id, attendanceDate);
+                                }}
+                            >
+                                <SelectTrigger className="bg-slate-800 border-slate-700">
+                                    <SelectValue placeholder="Select Class to Mark Attendance" />
+                                </SelectTrigger>
+                                <SelectContent className="bg-slate-800 border-slate-700">
+                                    {classes.map(c => <SelectItem key={c.id} value={c.id.toString()}>{c.class_name}</SelectItem>)}
+                                </SelectContent>
+                            </Select>
+
+                            <div className="rounded-xl border border-slate-700 overflow-hidden">
+                                <table className="w-full text-left">
+                                    <thead className="bg-slate-900/50 text-slate-400 text-xs font-medium uppercase">
+                                        <tr>
+                                            <th className="px-6 py-4">Student</th>
+                                            <th className="px-6 py-4">Roll Number</th>
+                                            <th className="px-6 py-4 text-center">Status</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-slate-700">
+                                        {classAttendance.length === 0 ? (
+                                            <tr>
+                                                <td colSpan={3} className="px-6 py-12 text-center text-slate-500">
+                                                    {selectedClass ? "No students found in this class" : "Select a class to view attendance"}
+                                                </td>
+                                            </tr>
+                                        ) : (
+                                            classAttendance.map((student) => (
+                                                <tr key={student.student_id} className="bg-slate-800/20">
+                                                    <td className="px-6 py-4">
+                                                        <div className="font-medium text-white">{student.first_name} {student.last_name}</div>
+                                                    </td>
+                                                    <td className="px-6 py-4 text-slate-400 font-mono text-sm">{student.roll_number}</td>
+                                                    <td className="px-6 py-4">
+                                                        <div className="flex items-center justify-center gap-2">
+                                                            <button
+                                                                onClick={() => handleMarkAttendance(student.student_id, 'present')}
+                                                                className={cn(
+                                                                    "px-3 py-1 rounded-full text-xs transition-all",
+                                                                    student.status === 'present'
+                                                                        ? "bg-green-500 text-white"
+                                                                        : "bg-slate-700 text-slate-400 hover:bg-slate-600"
+                                                                )}
+                                                            >
+                                                                Present
+                                                            </button>
+                                                            <button
+                                                                onClick={() => handleMarkAttendance(student.student_id, 'absent')}
+                                                                className={cn(
+                                                                    "px-3 py-1 rounded-full text-xs transition-all",
+                                                                    student.status === 'absent'
+                                                                        ? "bg-red-500 text-white"
+                                                                        : "bg-slate-700 text-slate-400 hover:bg-slate-600"
+                                                                )}
+                                                            >
+                                                                Absent
+                                                            </button>
+                                                            <button
+                                                                onClick={() => handleMarkAttendance(student.student_id, 'late')}
+                                                                className={cn(
+                                                                    "px-3 py-1 rounded-full text-xs transition-all",
+                                                                    student.status === 'late'
+                                                                        ? "bg-yellow-500 text-white"
+                                                                        : "bg-slate-700 text-slate-400 hover:bg-slate-600"
+                                                                )}
+                                                            >
+                                                                Late
+                                                            </button>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            ))
+                                        )}
+                                    </tbody>
+                                </table>
+                            </div>
                         </div>
                     </CardContent>
                 </Card>

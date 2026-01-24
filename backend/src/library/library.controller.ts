@@ -1,11 +1,11 @@
 import { Controller, Get, Post, Put, Body, Param, UseGuards, HttpException, HttpStatus } from "@nestjs/common"
 import { JwtAuthGuard } from "../auth/jwt-auth.guard"
-import  { LibraryService } from "./library.service"
+import { LibraryService } from "./library.service"
 
 @Controller("library")
-@UseGuards(JwtAuthGuard)
+// @UseGuards(JwtAuthGuard)
 export class LibraryController {
-  constructor(private readonly libraryService: LibraryService) {}
+  constructor(private readonly libraryService: LibraryService) { }
 
   @Get("books")
   async getBooks(query: any) {
