@@ -11,6 +11,12 @@ import { Badge } from "@/components/ui/badge"
 import { CalendarIcon, CheckCircle2, XCircle, Clock, AlertCircle, Loader2, ClipboardCheck, Users, Search, Download } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { cn } from "@/lib/utils"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 
 interface Class {
   id: number
@@ -18,6 +24,12 @@ interface Class {
   class_code: string
   section: string
   grade_level: number
+}
+
+interface Subject {
+  id: number
+  subject_name: string
+  subject_code: string
 }
 
 interface Student {
@@ -34,6 +46,8 @@ export default function AttendancePage() {
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split("T")[0])
   const [selectedClass, setSelectedClass] = useState<string>("")
   const [classes, setClasses] = useState<Class[]>([])
+  const [subjects, setSubjects] = useState<Subject[]>([])
+  const [selectedSubject, setSelectedSubject] = useState<string>("")
   const [students, setStudents] = useState<Student[]>([])
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -45,16 +59,21 @@ export default function AttendancePage() {
     total: 0,
     percentage: 0
   })
+  const [historyOpen, setHistoryOpen] = useState(false)
+  const [selectedStudentHistory, setSelectedStudentHistory] = useState<any[]>([])
+  const [historyLoading, setHistoryLoading] = useState(false)
+  const [viewingStudent, setViewingStudent] = useState<Student | null>(null)
 
   useEffect(() => {
     fetchClasses()
+    fetchSubjects()
   }, [])
 
   useEffect(() => {
     if (selectedClass && selectedDate) {
       fetchClassAttendance()
     }
-  }, [selectedClass, selectedDate])
+  }, [selectedClass, selectedDate, selectedSubject]) // Refetch when subject changes
 
   const fetchClasses = async () => {
     try {
@@ -72,17 +91,33 @@ export default function AttendancePage() {
     }
   }
 
+  const fetchSubjects = async () => {
+    try {
+      const res = await fetch('http://localhost:4000/api/subjects', {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
+        }
+      })
+      if (res.ok) {
+        const data = await res.json()
+        setSubjects(data)
+      }
+    } catch (error) {
+      console.error('Error fetching subjects:', error)
+    }
+  }
+
   const fetchClassAttendance = async () => {
     setLoading(true)
     try {
-      const res = await fetch(
-        `http://localhost:4000/api/attendance/class/${selectedClass}?date=${selectedDate}`,
-        {
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
-          }
+      let url = `http://localhost:4000/api/attendance/class/${selectedClass}?date=${selectedDate}`
+      if (selectedSubject && selectedSubject !== 'all') url += `&subjectId=${selectedSubject}`
+
+      const res = await fetch(url, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
         }
-      )
+      })
       if (res.ok) {
         const data = await res.json()
         setStudents(data.data || data)
@@ -123,7 +158,8 @@ export default function AttendancePage() {
         .map(s => ({
           studentId: s.student_id,
           status: s.status,
-          remarks: s.remarks || null
+          remarks: s.remarks || null,
+          subjectId: selectedSubject && selectedSubject !== 'all' ? parseInt(selectedSubject) : null
         }))
 
       const res = await fetch('http://localhost:4000/api/attendance/bulk', {
@@ -147,6 +183,25 @@ export default function AttendancePage() {
       console.error('Error saving attendance:', error)
     } finally {
       setSaving(false)
+    }
+  }
+
+  const fetchStudentHistory = async (student: Student) => {
+    setViewingStudent(student)
+    setHistoryLoading(true)
+    setHistoryOpen(true)
+    try {
+      const res = await fetch(`http://localhost:4000/api/attendance/student/${student.student_id}`, {
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` }
+      })
+      if (res.ok) {
+        const data = await res.json()
+        setSelectedStudentHistory(data.data || [])
+      }
+    } catch (error) {
+      console.error('Error fetching student history:', error)
+    } finally {
+      setHistoryLoading(false)
     }
   }
 
@@ -229,6 +284,22 @@ export default function AttendancePage() {
             </SelectContent>
           </Select>
         </div>
+        <div className="flex-1 space-y-3">
+          <Label className="text-slate-400 text-xs font-bold uppercase tracking-widest">Filter By Subject (Optional)</Label>
+          <Select value={selectedSubject} onValueChange={setSelectedSubject}>
+            <SelectTrigger className="bg-slate-900 border-slate-700 h-12 rounded-xl focus:ring-indigo-500/20">
+              <SelectValue placeholder="All Subjects" />
+            </SelectTrigger>
+            <SelectContent className="bg-slate-900 border-slate-800 text-white">
+              <SelectItem value="all">All Subjects</SelectItem>
+              {subjects.map((sub) => (
+                <SelectItem key={sub.id} value={sub.id.toString()}>
+                  {sub.subject_name} ({sub.subject_code})
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
         <Button variant="ghost" className="h-12 px-6 rounded-xl border border-slate-800 text-slate-400 hover:text-white hover:bg-slate-800">
           <Search className="mr-2 h-4 w-4" /> Filter Personnel
         </Button>
@@ -260,7 +331,12 @@ export default function AttendancePage() {
                             {student.first_name[0]}{student.last_name[0]}
                           </div>
                           <div className="flex flex-col">
-                            <span className="font-bold text-white group-hover:text-indigo-400 transition-colors uppercase tracking-tighter">{student.first_name} {student.last_name}</span>
+                            <span
+                              className="font-bold text-white group-hover:text-indigo-400 transition-colors uppercase tracking-tighter cursor-pointer"
+                              onClick={() => fetchStudentHistory(student)}
+                            >
+                              {student.first_name} {student.last_name}
+                            </span>
                             <span className="text-[10px] text-slate-500 font-mono flex items-center gap-1.5 mt-1">
                               <Users className="h-3 w-3" />
                               ID: {student.roll_number}
@@ -326,6 +402,41 @@ export default function AttendancePage() {
           )}
         </CardContent>
       </Card>
+
+      <Dialog open={historyOpen} onOpenChange={setHistoryOpen}>
+        <DialogContent className="bg-slate-900 border-slate-800 text-white max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>
+              Attendance History: {viewingStudent?.first_name} {viewingStudent?.last_name}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            {historyLoading ? (
+              <div className="flex justify-center py-8"><Loader2 className="h-8 w-8 animate-spin text-indigo-500" /></div>
+            ) : selectedStudentHistory.length === 0 ? (
+              <p className="text-center text-slate-500 py-8">No attendance records found for this student.</p>
+            ) : (
+              <div className="max-h-[400px] overflow-y-auto space-y-2 pr-2">
+                {selectedStudentHistory.map((record, i) => (
+                  <div key={i} className="flex justify-between items-center p-3 rounded-xl border border-slate-800 bg-slate-900/50">
+                    <div>
+                      <div className="text-sm font-bold text-white uppercase tracking-tighter">{record.class_name}</div>
+                      <div className="text-[10px] text-slate-500 font-mono">{new Date(record.attendance_date).toLocaleDateString()}</div>
+                    </div>
+                    <Badge className={cn("px-2 py-0.5 rounded text-[10px] uppercase font-black tracking-widest",
+                      record.status === 'present' ? 'bg-emerald-500/10 text-emerald-400' :
+                        record.status === 'absent' ? 'bg-rose-500/10 text-rose-400' :
+                          record.status === 'late' ? 'bg-yellow-500/10 text-yellow-400' :
+                            'bg-slate-800 text-slate-400')}>
+                      {record.status}
+                    </Badge>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

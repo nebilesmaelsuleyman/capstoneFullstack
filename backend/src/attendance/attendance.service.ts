@@ -6,17 +6,17 @@ export class AttendanceService {
   constructor(private readonly db: DatabaseService) { }
 
   async markAttendance(data: any) {
-    const { studentId, classId, attendanceDate, status, remarks } = data
+    const { studentId, classId, subjectId, attendanceDate, status, remarks } = data
 
     const query = `
-      INSERT INTO attendance (student_id, class_id, attendance_date, status, remarks)
-      VALUES ($1, $2, $3, $4, $5)
-      ON CONFLICT (student_id, class_id, attendance_date)
-      DO UPDATE SET status = $4, remarks = $5
+      INSERT INTO attendance (student_id, class_id, subject_id, attendance_date, status, remarks)
+      VALUES ($1, $2, $3, $4, $5, $6)
+      ON CONFLICT (student_id, class_id, subject_id, attendance_date)
+      DO UPDATE SET status = $5, remarks = $6
       RETURNING *
     `
 
-    const result = await this.db.query(query, [studentId, classId, attendanceDate, status, remarks || null])
+    const result = await this.db.query(query, [studentId, classId, subjectId, attendanceDate, status, remarks || null])
     return result.rows[0]
   }
 
@@ -28,15 +28,16 @@ export class AttendanceService {
       const results = []
       for (const record of records) {
         const query = `
-          INSERT INTO attendance (student_id, class_id, attendance_date, status, remarks)
-          VALUES ($1, $2, $3, $4, $5)
-          ON CONFLICT (student_id, class_id, attendance_date)
-          DO UPDATE SET status = $4, remarks = $5
+          INSERT INTO attendance (student_id, class_id, subject_id, attendance_date, status, remarks)
+          VALUES ($1, $2, $3, $4, $5, $6)
+          ON CONFLICT (student_id, class_id, subject_id, attendance_date)
+          DO UPDATE SET status = $5, remarks = $6
           RETURNING *
         `
         const result = await client.query(query, [
           record.studentId,
           classId,
+          record.subjectId,
           date,
           record.status,
           record.remarks || null,
@@ -56,9 +57,10 @@ export class AttendanceService {
 
   async getStudentAttendance(studentId: number, startDate?: string, endDate?: string) {
     let query = `
-      SELECT a.*, c.class_name, c.section
+      SELECT a.*, c.class_name, c.section, s.subject_name
       FROM attendance a
       JOIN classes c ON a.class_id = c.id
+      JOIN subjects s ON a.subject_id = s.id
       WHERE a.student_id = $1
     `
     const params: any[] = [studentId]
@@ -78,8 +80,8 @@ export class AttendanceService {
     return result.rows
   }
 
-  async getClassAttendance(classId: number, date: string) {
-    const query = `
+  async getClassAttendance(classId: number, date: string, subjectId?: number) {
+    let query = `
       SELECT 
         s.id as student_id,
         u.first_name,
@@ -93,11 +95,21 @@ export class AttendanceService {
       LEFT JOIN attendance a ON s.id = a.student_id 
         AND a.class_id = $1 
         AND a.attendance_date = $2
+    `
+
+    const params: any[] = [classId, date]
+
+    if (subjectId) {
+      query += ` AND a.subject_id = $3`
+      params.push(subjectId)
+    }
+
+    query += `
       WHERE sc.class_id = $1 AND sc.status = 'active'
       ORDER BY u.last_name, u.first_name
     `
 
-    const result = await this.db.query(query, [classId, date])
+    const result = await this.db.query(query, params)
     return result.rows
   }
 

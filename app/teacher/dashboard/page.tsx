@@ -130,6 +130,10 @@ export default function TeacherDashboard() {
     const [allStudents, setAllStudents] = useState<Student[]>([])
     const [enrollingStudentId, setEnrollingStudentId] = useState<string>("")
     const [enrollingLoading, setEnrollingLoading] = useState(false)
+    const [historyOpen, setHistoryOpen] = useState(false)
+    const [selectedStudentHistory, setSelectedStudentHistory] = useState<any[]>([])
+    const [historyLoading, setHistoryLoading] = useState(false)
+    const [viewingStudent, setViewingStudent] = useState<any | null>(null)
 
     useEffect(() => {
         const handleNav = (e: any) => setActiveSection(e.detail)
@@ -326,9 +330,12 @@ export default function TeacherDashboard() {
         setIsGradeDialogOpen(true)
     }
 
-    const fetchClassAttendance = async (classId: number, date: string) => {
+    const fetchClassAttendance = async (classId: number, date: string, subjectId?: string) => {
         try {
-            const res = await fetch(`http://localhost:4000/api/attendance/class/${classId}?date=${date}`, {
+            let url = `http://localhost:4000/api/attendance/class/${classId}?date=${date}`
+            if (subjectId) url += `&subjectId=${subjectId}`
+
+            const res = await fetch(url, {
                 headers: { 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` }
             })
             if (res.ok) {
@@ -354,8 +361,10 @@ export default function TeacherDashboard() {
                     studentId,
                     classId: selectedClass.id,
                     attendanceDate,
+                    attendanceDate,
                     status,
-                    remarks: ""
+                    remarks: "",
+                    subjectId: selectedSubject ? parseInt(selectedSubject) : null
                 })
             })
             if (res.ok) {
@@ -377,7 +386,10 @@ export default function TeacherDashboard() {
             const records = classAttendance.map(s => ({
                 studentId: s.student_id,
                 status: s.status === 'not_marked' ? 'present' : s.status,
-                remarks: s.remarks
+                studentId: s.student_id,
+                status: s.status === 'not_marked' ? 'present' : s.status,
+                remarks: s.remarks,
+                subjectId: selectedSubject ? parseInt(selectedSubject) : null
             }))
 
             const res = await fetch(`http://localhost:4000/api/attendance/bulk/${selectedClass.id}`, {
@@ -393,12 +405,31 @@ export default function TeacherDashboard() {
             })
 
             if (res.ok) {
-                fetchClassAttendance(selectedClass.id, attendanceDate)
+                fetchClassAttendance(selectedClass.id, attendanceDate, selectedSubject)
             }
         } catch (error) {
             console.error('Error saving attendance:', error)
         } finally {
             setSavingAttendance(false)
+        }
+    }
+
+    const fetchStudentHistory = async (student: any) => {
+        setViewingStudent(student)
+        setHistoryLoading(true)
+        setHistoryOpen(true)
+        try {
+            const res = await fetch(`http://localhost:4000/api/attendance/student/${student.student_id}`, {
+                headers: { 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` }
+            })
+            if (res.ok) {
+                const data = await res.json()
+                setSelectedStudentHistory(data.data || [])
+            }
+        } catch (error) {
+            console.error('Error fetching student history:', error)
+        } finally {
+            setHistoryLoading(false)
         }
     }
 
@@ -744,22 +775,40 @@ export default function TeacherDashboard() {
                         </div>
                     </CardHeader>
                     <CardContent>
+
                         <div className="space-y-4">
-                            <Select
-                                value={selectedClass?.id.toString() || ""}
-                                onValueChange={v => {
-                                    const c = classes.find(c => c.id.toString() === v)!;
-                                    handleClassSelect(c);
-                                    fetchClassAttendance(c.id, attendanceDate);
-                                }}
-                            >
-                                <SelectTrigger className="bg-slate-800 border-slate-700">
-                                    <SelectValue placeholder="Select Class to Mark Attendance" />
-                                </SelectTrigger>
-                                <SelectContent className="bg-slate-800 border-slate-700">
-                                    {classes.map(c => <SelectItem key={c.id} value={c.id.toString()}>{c.class_name}</SelectItem>)}
-                                </SelectContent>
-                            </Select>
+                            <div className="grid md:grid-cols-2 gap-4">
+                                <Select
+                                    value={selectedClass?.id.toString() || ""}
+                                    onValueChange={v => {
+                                        const c = classes.find(c => c.id.toString() === v)!;
+                                        handleClassSelect(c);
+                                        fetchClassAttendance(c.id, attendanceDate, selectedSubject);
+                                    }}
+                                >
+                                    <SelectTrigger className="bg-slate-800 border-slate-700">
+                                        <SelectValue placeholder="Select Class" />
+                                    </SelectTrigger>
+                                    <SelectContent className="bg-slate-800 border-slate-700">
+                                        {classes.map(c => <SelectItem key={c.id} value={c.id.toString()}>{c.class_name}</SelectItem>)}
+                                    </SelectContent>
+                                </Select>
+
+                                <Select
+                                    value={selectedSubject}
+                                    onValueChange={v => {
+                                        setSelectedSubject(v);
+                                        if (selectedClass) fetchClassAttendance(selectedClass.id, attendanceDate, v);
+                                    }}
+                                >
+                                    <SelectTrigger className="bg-slate-800 border-slate-700">
+                                        <SelectValue placeholder="Select Subject" />
+                                    </SelectTrigger>
+                                    <SelectContent className="bg-slate-800 border-slate-700">
+                                        {allSubjects.map(s => <SelectItem key={s.id.toString()} value={s.id.toString()}>{s.subject_name}</SelectItem>)}
+                                    </SelectContent>
+                                </Select>
+                            </div>
 
                             <div className="rounded-xl border border-slate-700 overflow-hidden">
                                 <table className="w-full text-left">
@@ -781,7 +830,12 @@ export default function TeacherDashboard() {
                                             classAttendance.map((student) => (
                                                 <tr key={student.student_id} className="bg-slate-800/20">
                                                     <td className="px-6 py-4">
-                                                        <div className="font-medium text-white">{student.first_name} {student.last_name}</div>
+                                                        <div
+                                                            className="font-medium text-white cursor-pointer hover:text-purple-400 transition-colors"
+                                                            onClick={() => fetchStudentHistory(student)}
+                                                        >
+                                                            {student.first_name} {student.last_name}
+                                                        </div>
                                                     </td>
                                                     <td className="px-6 py-4 text-slate-400 font-mono text-sm">{student.roll_number}</td>
                                                     <td className="px-6 py-4">
@@ -867,6 +921,41 @@ export default function TeacherDashboard() {
                     </div>
                 </Card>
             )}
+
+            <Dialog open={historyOpen} onOpenChange={setHistoryOpen}>
+                <DialogContent className="bg-slate-900 border-slate-800 text-white max-w-2xl">
+                    <DialogHeader>
+                        <DialogTitle>
+                            Attendance History: {viewingStudent?.first_name} {viewingStudent?.last_name}
+                        </DialogTitle>
+                    </DialogHeader>
+                    <div className="py-4">
+                        {historyLoading ? (
+                            <div className="flex justify-center py-8"><Loader2 className="h-8 w-8 animate-spin text-purple-500" /></div>
+                        ) : selectedStudentHistory.length === 0 ? (
+                            <p className="text-center text-slate-500 py-8">No attendance records found.</p>
+                        ) : (
+                            <div className="max-h-[400px] overflow-y-auto space-y-2 pr-2">
+                                {selectedStudentHistory.map((record, i) => (
+                                    <div key={i} className="flex justify-between items-center p-3 rounded-xl border border-slate-800 bg-slate-800/20">
+                                        <div>
+                                            <div className="text-sm font-bold text-white uppercase tracking-tighter">{record.class_name}</div>
+                                            <div className="text-[10px] text-slate-500 font-mono">{new Date(record.attendance_date).toLocaleDateString()}</div>
+                                        </div>
+                                        <Badge className={cn("px-2 py-0.5 rounded text-[10px] uppercase font-black tracking-widest",
+                                            record.status === 'present' ? 'bg-green-500/10 text-green-400' :
+                                                record.status === 'absent' ? 'bg-red-500/10 text-red-400' :
+                                                    record.status === 'late' ? 'bg-yellow-500/10 text-yellow-400' :
+                                                        'bg-slate-800 text-slate-400')}>
+                                            {record.status}
+                                        </Badge>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                </DialogContent>
+            </Dialog>
         </div>
     )
 }

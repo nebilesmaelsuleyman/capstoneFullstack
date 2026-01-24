@@ -27,6 +27,19 @@ export class AttendanceController {
     }
   }
 
+  @Post("bulk/:classId")
+  async markBulkAttendanceWithParam(
+    @Param("classId") classId: string,
+    @Body() body: { date: string; records: any[] }
+  ) {
+    try {
+      const result = await this.attendanceService.markBulkAttendance(parseInt(classId), body.date, body.records)
+      return { success: true, data: result }
+    } catch (error) {
+      throw new HttpException(error.message, HttpStatus.BAD_REQUEST)
+    }
+  }
+
   @Get("student/:studentId")
   async getStudentAttendance(
     @Param("studentId") studentId: number,
@@ -42,9 +55,17 @@ export class AttendanceController {
   }
 
   @Get("class/:classId")
-  async getClassAttendance(@Param("classId") classId: number, @Query("date") date: string) {
+  async getClassAttendance(
+    @Param("classId") classId: string,
+    @Query("date") date: string,
+    @Query("subjectId") subjectId?: string
+  ) {
     try {
-      const result = await this.attendanceService.getClassAttendance(classId, date)
+      const result = await this.attendanceService.getClassAttendance(
+        parseInt(classId),
+        date,
+        subjectId ? parseInt(subjectId) : undefined
+      )
       return { success: true, data: result }
     } catch (error) {
       throw new HttpException(error.message, HttpStatus.BAD_REQUEST)
