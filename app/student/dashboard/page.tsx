@@ -28,6 +28,8 @@ interface Student {
     student_id: string
     first_name: string
     last_name: string
+    firstName?: string
+    lastName?: string
     email: string
     date_of_birth: string
     gender: string
@@ -89,6 +91,8 @@ interface Announcement {
     target_audience: string
     posted_by_first_name?: string
     posted_by_last_name?: string
+    postedByFirstName?: string
+    postedByLastName?: string
     posted_at: string
     priority: string
 }
@@ -102,6 +106,8 @@ interface TimetableEntry {
     subject_name: string
     teacher_first_name?: string
     teacher_last_name?: string
+    teacherFirstName?: string
+    teacherLastName?: string
 }
 
 export default function StudentDashboard() {
