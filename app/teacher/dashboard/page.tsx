@@ -124,6 +124,12 @@ export default function TeacherDashboard() {
     const [attendanceDate, setAttendanceDate] = useState(new Date().toISOString().split('T')[0])
     const [classAttendance, setClassAttendance] = useState<any[]>([])
     const [savingAttendance, setSavingAttendance] = useState(false)
+    const [editingGradeId, setEditingGradeId] = useState<number | null>(null)
+    const [markingStudentId, setMarkingStudentId] = useState<number | null>(null)
+    const [isEnrollDialogOpen, setIsEnrollDialogOpen] = useState(false)
+    const [allStudents, setAllStudents] = useState<Student[]>([])
+    const [enrollingStudentId, setEnrollingStudentId] = useState<string>("")
+    const [enrollingLoading, setEnrollingLoading] = useState(false)
 
     useEffect(() => {
         const handleNav = (e: any) => setActiveSection(e.detail)
@@ -145,7 +151,21 @@ export default function TeacherDashboard() {
                 console.error('Error fetching subjects:', error)
             }
         }
+        const fetchAllStudents = async () => {
+            try {
+                const res = await fetch('http://localhost:4000/api/students', {
+                    headers: { 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` }
+                })
+                if (res.ok) {
+                    const data = await res.json()
+                    setAllStudents(data.data || data)
+                }
+            } catch (error) {
+                console.error('Error fetching all students:', error)
+            }
+        }
         fetchSubjects()
+        fetchAllStudents()
     }, [])
 
     const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]
@@ -244,8 +264,14 @@ export default function TeacherDashboard() {
 
     const handleCreateGrade = async () => {
         try {
-            const res = await fetch('http://localhost:4000/api/grades', {
-                method: 'POST',
+            const url = editingGradeId
+                ? `http://localhost:4000/api/grades/${editingGradeId}`
+                : 'http://localhost:4000/api/grades';
+
+            const method = editingGradeId ? 'PUT' : 'POST';
+
+            const res = await fetch(url, {
+                method: method,
                 headers: {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
@@ -264,6 +290,7 @@ export default function TeacherDashboard() {
 
             if (res.ok) {
                 setIsGradeDialogOpen(false)
+                setEditingGradeId(null)
                 setNewGrade({
                     student_id: "",
                     subject_id: "",
@@ -279,8 +306,24 @@ export default function TeacherDashboard() {
                 }
             }
         } catch (error) {
-            console.error('Error creating grade:', error)
+            console.error('Error saving grade:', error)
         }
+    }
+
+    const handleEditGrade = (grade: Grade) => {
+        setEditingGradeId(grade.id)
+        setNewGrade({
+            student_id: grade.student_id.toString(),
+            subject_id: selectedSubject,
+            class_id: selectedClass?.id.toString() || "",
+            exam_type: grade.exam_type,
+            grade: grade.grade.toString(),
+            max_grade: grade.max_grade.toString(),
+            exam_date: new Date(grade.exam_date).toISOString().split('T')[0],
+            remarks: grade.remarks || ""
+        })
+        fetchStudentsByClass(selectedClass?.id || 0)
+        setIsGradeDialogOpen(true)
     }
 
     const fetchClassAttendance = async (classId: number, date: string) => {
@@ -297,10 +340,34 @@ export default function TeacherDashboard() {
         }
     }
 
-    const handleMarkAttendance = (studentId: number, status: string) => {
-        setClassAttendance(classAttendance.map(s =>
-            s.student_id === studentId ? { ...s, status } : s
-        ))
+    const handleMarkAttendance = async (studentId: number, status: string) => {
+        if (!selectedClass) return
+        setMarkingStudentId(studentId)
+        try {
+            const res = await fetch('http://localhost:4000/api/attendance', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
+                },
+                body: JSON.stringify({
+                    studentId,
+                    classId: selectedClass.id,
+                    attendanceDate,
+                    status,
+                    remarks: ""
+                })
+            })
+            if (res.ok) {
+                setClassAttendance(classAttendance.map(s =>
+                    s.student_id === studentId ? { ...s, status } : s
+                ))
+            }
+        } catch (error) {
+            console.error('Error marking attendance:', error)
+        } finally {
+            setMarkingStudentId(null)
+        }
     }
 
     const handleSaveAttendance = async () => {
@@ -332,6 +399,27 @@ export default function TeacherDashboard() {
             console.error('Error saving attendance:', error)
         } finally {
             setSavingAttendance(false)
+        }
+    }
+
+    const handleEnrollStudent = async () => {
+        if (!selectedClass || !enrollingStudentId) return
+        setEnrollingLoading(true)
+        try {
+            const res = await fetch(`http://localhost:4000/api/classes/${selectedClass.id}/enroll/${enrollingStudentId}`, {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` }
+            })
+            if (res.ok) {
+                setIsEnrollDialogOpen(false)
+                setEnrollingStudentId("")
+                fetchTeacherData(teacherId!) // Refresh student counts
+                fetchStudentsByClass(selectedClass.id)
+            }
+        } catch (error) {
+            console.error('Error enrolling student:', error)
+        } finally {
+            setEnrollingLoading(false)
         }
     }
 
@@ -447,11 +535,63 @@ export default function TeacherDashboard() {
 
             {activeSection === "classes" && (
                 <Card className="border-0 bg-slate-800/50 backdrop-blur-xl shadow-xl">
-                    <CardHeader><CardTitle className="text-white">Assigned Classes</CardTitle></CardHeader>
+                    <CardHeader>
+                        <div className="flex justify-between items-center">
+                            <CardTitle className="text-white">Assigned Classes</CardTitle>
+                            <Dialog open={isEnrollDialogOpen} onOpenChange={setIsEnrollDialogOpen}>
+                                <DialogTrigger asChild>
+                                    <Button size="sm" className="bg-blue-600 hover:bg-blue-700" onClick={() => setSelectedClass(null)}>
+                                        <Plus className="mr-2 h-4 w-4" /> Enroll Student
+                                    </Button>
+                                </DialogTrigger>
+                                <DialogContent className="bg-slate-900 text-white border-slate-700">
+                                    <DialogHeader><DialogTitle>Enroll Student to Class</DialogTitle></DialogHeader>
+                                    <div className="space-y-4 py-4">
+                                        <div className="grid gap-2">
+                                            <Label>Class</Label>
+                                            <Select value={selectedClass?.id.toString()} onValueChange={v => setSelectedClass(classes.find(c => c.id.toString() === v)!)}>
+                                                <SelectTrigger className="bg-slate-800"><SelectValue placeholder="Select Class" /></SelectTrigger>
+                                                <SelectContent className="bg-slate-800">{classes.map(c => <SelectItem key={c.id} value={c.id.toString()}>{c.class_name}</SelectItem>)}</SelectContent>
+                                            </Select>
+                                        </div>
+                                        <div className="grid gap-2">
+                                            <Label>Student</Label>
+                                            <Select value={enrollingStudentId} onValueChange={setEnrollingStudentId}>
+                                                <SelectTrigger className="bg-slate-800"><SelectValue placeholder="Select Student" /></SelectTrigger>
+                                                <SelectContent className="bg-slate-800">
+                                                    {allStudents
+                                                        .filter(s => !students.some(es => es.id === s.id))
+                                                        .map(s => <SelectItem key={s.id} value={s.id.toString()}>{s.firstName} {s.lastName}</SelectItem>)}
+                                                </SelectContent>
+                                            </Select>
+                                        </div>
+                                    </div>
+                                    <DialogFooter>
+                                        <Button onClick={handleEnrollStudent} disabled={enrollingLoading || !selectedClass || !enrollingStudentId}>
+                                            {enrollingLoading && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+                                            Enroll Now
+                                        </Button>
+                                    </DialogFooter>
+                                </DialogContent>
+                            </Dialog>
+                        </div>
+                    </CardHeader>
                     <CardContent>
                         <div className="grid gap-4 md:grid-cols-3">
                             {classes.map((c) => (
-                                <Card key={c.id} className="border-0 bg-slate-700/50 p-4 hover:shadow-lg transition-all"><h3 className="font-bold text-white mb-1">{c.class_name}</h3><div className="text-xs text-slate-400">{c.class_code} • {c.student_count} Students</div><div className="mt-2 text-[10px] text-slate-300">Room: {c.room_number}</div></Card>
+                                <Card key={c.id} className="border-0 bg-slate-700/50 p-4 hover:shadow-lg transition-all">
+                                    <div className="flex justify-between items-start">
+                                        <div>
+                                            <h3 className="font-bold text-white mb-1">{c.class_name}</h3>
+                                            <div className="text-xs text-slate-400">{c.class_code} • {c.student_count} Students</div>
+                                        </div>
+                                        <Badge className="bg-blue-500/20 text-blue-300 border-blue-500/30">Grade {c.grade_level}</Badge>
+                                    </div>
+                                    <div className="mt-4 flex justify-between items-center text-[10px] text-slate-300">
+                                        <span>Room: {c.room_number}</span>
+                                        <Button variant="ghost" size="sm" className="h-6 px-2 text-[9px]" onClick={() => { setSelectedClass(c); fetchStudentsByClass(c.id); setActiveSection("grades") }}>Manage Grades</Button>
+                                    </div>
+                                </Card>
                             ))}
                         </div>
                     </CardContent>
@@ -463,10 +603,10 @@ export default function TeacherDashboard() {
                     <CardHeader>
                         <div className="flex justify-between items-center">
                             <CardTitle className="text-white">Student Grading</CardTitle>
-                            <Dialog open={isGradeDialogOpen} onOpenChange={setIsGradeDialogOpen}>
-                                <DialogTrigger asChild><Button size="sm" className="bg-purple-600 hover:bg-purple-700"><Plus className="mr-2 h-4 w-4" />New Grade</Button></DialogTrigger>
+                            <Dialog open={isGradeDialogOpen} onOpenChange={(open) => { setIsGradeDialogOpen(open); if (!open) { setEditingGradeId(null); setNewGrade({ ...newGrade, student_id: "" }); } }}>
+                                <DialogTrigger asChild><Button size="sm" className="bg-purple-600 hover:bg-purple-700" onClick={() => { setEditingGradeId(null); setNewGrade({ ...newGrade, student_id: "" }); }}><Plus className="mr-2 h-4 w-4" />New Grade</Button></DialogTrigger>
                                 <DialogContent className="bg-slate-900 text-white border-slate-700">
-                                    <DialogHeader><DialogTitle>Add New Grade</DialogTitle></DialogHeader>
+                                    <DialogHeader><DialogTitle>{editingGradeId ? 'Edit Grade' : 'Add New Grade'}</DialogTitle></DialogHeader>
                                     <div className="space-y-4 py-4">
                                         <div className="grid gap-2"><Label>Class</Label><Select value={newGrade.class_id} onValueChange={val => { setNewGrade({ ...newGrade, class_id: val }); fetchStudentsByClass(parseInt(val)); }}><SelectTrigger className="bg-slate-800"><SelectValue /></SelectTrigger><SelectContent className="bg-slate-800">{classes.map(c => <SelectItem key={c.id} value={c.id.toString()}>{c.class_name}</SelectItem>)}</SelectContent></Select></div>
                                         <div className="grid gap-2"><Label>Student</Label><Select value={newGrade.student_id} onValueChange={val => setNewGrade({ ...newGrade, student_id: val })}><SelectTrigger className="bg-slate-800"><SelectValue /></SelectTrigger><SelectContent className="bg-slate-800">{students.map(s => <SelectItem key={s.id} value={s.id.toString()}>{s.firstName} {s.lastName}</SelectItem>)}</SelectContent></Select></div>
@@ -488,9 +628,87 @@ export default function TeacherDashboard() {
                     </CardHeader>
                     <CardContent>
                         <div className="space-y-4">
-                            <Select value={selectedClass?.id.toString() || ""} onValueChange={v => handleClassSelect(classes.find(c => c.id.toString() === v)!)}><SelectTrigger className="bg-slate-800"><SelectValue placeholder="Select Class" /></SelectTrigger><SelectContent className="bg-slate-800">{classes.map(c => <SelectItem key={c.id} value={c.id.toString()}>{c.class_name}</SelectItem>)}</SelectContent></Select>
-                            <Select value={selectedSubject} onValueChange={v => { setSelectedSubject(v); if (selectedClass) fetchGradesForClass(selectedClass.id, v); }}><SelectTrigger className="bg-slate-800"><SelectValue placeholder="Select Subject" /></SelectTrigger><SelectContent className="bg-slate-800">{allSubjects.map(s => <SelectItem key={s.id.toString()} value={s.id.toString()}>{s.subject_name}</SelectItem>)}</SelectContent></Select>
-                            <div className="space-y-2">{grades.map(g => (<div key={g.id} className="p-3 border border-slate-700 rounded-lg flex justify-between items-center"><div className="text-sm"><div>{g.first_name} {g.last_name}</div><div className="text-[10px] text-slate-500">{g.exam_type} • {new Date(g.exam_date).toLocaleDateString()}</div></div><div className="font-bold text-purple-400">{g.grade}/{g.max_grade}</div></div>))}</div>
+                            <div className="grid md:grid-cols-2 gap-4">
+                                <Select value={selectedClass?.id.toString() || ""} onValueChange={v => handleClassSelect(classes.find(c => c.id.toString() === v)!)}>
+                                    <SelectTrigger className="bg-slate-800 border-slate-700"><SelectValue placeholder="Select Class" /></SelectTrigger>
+                                    <SelectContent className="bg-slate-800">{classes.map(c => <SelectItem key={c.id} value={c.id.toString()}>{c.class_name}</SelectItem>)}</SelectContent>
+                                </Select>
+                                <Select value={selectedSubject} onValueChange={v => { setSelectedSubject(v); if (selectedClass) fetchGradesForClass(selectedClass.id, v); }}>
+                                    <SelectTrigger className="bg-slate-800 border-slate-700"><SelectValue placeholder="Select Subject" /></SelectTrigger>
+                                    <SelectContent className="bg-slate-800">{allSubjects.map(s => <SelectItem key={s.id.toString()} value={s.id.toString()}>{s.subject_name}</SelectItem>)}</SelectContent>
+                                </Select>
+                            </div>
+
+                            <div className="rounded-xl border border-slate-700 overflow-hidden">
+                                <table className="w-full text-left">
+                                    <thead className="bg-slate-900/50 text-slate-400 text-xs font-medium uppercase">
+                                        <tr>
+                                            <th className="px-6 py-4">Student</th>
+                                            <th className="px-6 py-4">Grade / Max</th>
+                                            <th className="px-6 py-4">Type</th>
+                                            <th className="px-6 py-4">Date</th>
+                                            <th className="px-6 py-4 text-right">Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-slate-700">
+                                        {!selectedClass ? (
+                                            <tr><td colSpan={5} className="px-6 py-12 text-center text-slate-500">Select a class to view student grades</td></tr>
+                                        ) : students.length === 0 ? (
+                                            <tr><td colSpan={5} className="px-6 py-12 text-center text-slate-500">No students enrolled in this class</td></tr>
+                                        ) : students.map(student => {
+                                            const studentGrade = grades.find(g => g.student_id === student.id);
+                                            return (
+                                                <tr key={student.id} className="bg-slate-800/20 group">
+                                                    <td className="px-6 py-4">
+                                                        <div className="font-medium text-white">{student.firstName} {student.lastName}</div>
+                                                        <div className="text-[10px] text-slate-500">{student.student_id}</div>
+                                                    </td>
+                                                    <td className="px-6 py-4">
+                                                        {studentGrade ? (
+                                                            <span className="font-bold text-purple-400">{studentGrade.grade} / {studentGrade.max_grade}</span>
+                                                        ) : (
+                                                            <span className="text-slate-600 italic text-sm">Not Graded</span>
+                                                        )}
+                                                    </td>
+                                                    <td className="px-6 py-4">
+                                                        <Badge variant="outline" className="capitalize text-[10px] border-slate-700 text-slate-400">
+                                                            {studentGrade?.exam_type || "—"}
+                                                        </Badge>
+                                                    </td>
+                                                    <td className="px-6 py-4 text-xs text-slate-500">
+                                                        {studentGrade ? new Date(studentGrade.exam_date).toLocaleDateString() : "—"}
+                                                    </td>
+                                                    <td className="px-6 py-4 text-right">
+                                                        {studentGrade ? (
+                                                            <Button variant="ghost" size="sm" onClick={() => handleEditGrade(studentGrade)} className="h-8 w-8 p-0 text-slate-400 hover:text-white hover:bg-slate-700">
+                                                                <Award className="h-4 w-4" />
+                                                            </Button>
+                                                        ) : (
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="sm"
+                                                                onClick={() => {
+                                                                    setNewGrade({
+                                                                        ...newGrade,
+                                                                        student_id: student.id.toString(),
+                                                                        class_id: selectedClass.id.toString(),
+                                                                        subject_id: selectedSubject
+                                                                    });
+                                                                    setIsGradeDialogOpen(true);
+                                                                }}
+                                                                className="h-8 px-2 text-[10px] text-purple-400 hover:text-purple-300 hover:bg-purple-500/10"
+                                                                disabled={!selectedSubject}
+                                                            >
+                                                                <Plus className="mr-1 h-3 w-3" /> Add Grade
+                                                            </Button>
+                                                        )}
+                                                    </td>
+                                                </tr>
+                                            )
+                                        })}
+                                    </tbody>
+                                </table>
+                            </div>
                         </div>
                     </CardContent>
                 </Card>
@@ -570,35 +788,41 @@ export default function TeacherDashboard() {
                                                         <div className="flex items-center justify-center gap-2">
                                                             <button
                                                                 onClick={() => handleMarkAttendance(student.student_id, 'present')}
+                                                                disabled={markingStudentId === student.student_id}
                                                                 className={cn(
-                                                                    "px-3 py-1 rounded-full text-xs transition-all",
+                                                                    "px-3 py-1 rounded-full text-xs transition-all flex items-center gap-1",
                                                                     student.status === 'present'
                                                                         ? "bg-green-500 text-white"
                                                                         : "bg-slate-700 text-slate-400 hover:bg-slate-600"
                                                                 )}
                                                             >
+                                                                {markingStudentId === student.student_id && student.status !== 'present' && <Loader2 className="h-3 w-3 animate-spin" />}
                                                                 Present
                                                             </button>
                                                             <button
                                                                 onClick={() => handleMarkAttendance(student.student_id, 'absent')}
+                                                                disabled={markingStudentId === student.student_id}
                                                                 className={cn(
-                                                                    "px-3 py-1 rounded-full text-xs transition-all",
+                                                                    "px-3 py-1 rounded-full text-xs transition-all flex items-center gap-1",
                                                                     student.status === 'absent'
                                                                         ? "bg-red-500 text-white"
                                                                         : "bg-slate-700 text-slate-400 hover:bg-slate-600"
                                                                 )}
                                                             >
+                                                                {markingStudentId === student.student_id && student.status !== 'absent' && <Loader2 className="h-3 w-3 animate-spin" />}
                                                                 Absent
                                                             </button>
                                                             <button
                                                                 onClick={() => handleMarkAttendance(student.student_id, 'late')}
+                                                                disabled={markingStudentId === student.student_id}
                                                                 className={cn(
-                                                                    "px-3 py-1 rounded-full text-xs transition-all",
+                                                                    "px-3 py-1 rounded-full text-xs transition-all flex items-center gap-1",
                                                                     student.status === 'late'
                                                                         ? "bg-yellow-500 text-white"
                                                                         : "bg-slate-700 text-slate-400 hover:bg-slate-600"
                                                                 )}
                                                             >
+                                                                {markingStudentId === student.student_id && student.status !== 'late' && <Loader2 className="h-3 w-3 animate-spin" />}
                                                                 Late
                                                             </button>
                                                         </div>

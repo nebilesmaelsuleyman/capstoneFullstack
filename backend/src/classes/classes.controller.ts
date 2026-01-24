@@ -44,4 +44,9 @@ export class ClassesController {
   remove(@Param('id') id: string) {
     return this.classesService.remove(Number.parseInt(id));
   }
+
+  @Post(':id/enroll/:studentId')
+  enroll(@Param('id') id: string, @Param('studentId') studentId: string) {
+    return this.classesService.enrollStudent(Number.parseInt(id), Number.parseInt(studentId));
+  }
 }

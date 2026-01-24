@@ -110,4 +110,15 @@ export class ClassesService {
     await this.pool.query('DELETE FROM classes WHERE id = $1', [id]);
     return { message: 'Class deleted successfully' };
   }
+
+  async enrollStudent(classId: number, studentId: number) {
+    const result = await this.pool.query(
+      `INSERT INTO student_classes (student_id, class_id, enrollment_date, status)
+       VALUES ($1, $2, CURRENT_DATE, 'active')
+       ON CONFLICT (student_id, class_id) DO UPDATE SET status = 'active'
+       RETURNING *`,
+      [studentId, classId]
+    );
+    return result.rows[0];
+  }
 }
