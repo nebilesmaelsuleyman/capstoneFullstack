@@ -9,8 +9,8 @@ async function bootstrap() {
 
   // Security: Helmet helps secure Express apps by setting HTTP response headers
   app.use(helmet())
-  //Rate limiting  (basic DDOS protection)
 
+  //Rate limiting  (basic DDOS protection)
   const limiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes
     max: 100,// limit each IP to 100 requests per windowMs
@@ -22,6 +22,14 @@ async function bootstrap() {
     legacyHeaders: false
   })
 
+  const speedLimiter = slowDown({
+    windowMs: 15 * 60 * 1000,
+    delayAfter: 10,
+    delayMs: () => 500
+  })
+
+  app.use(limiter)
+  app.use(speedLimiter)
   // Enable CORS
   app.enableCors({
     origin: "http://localhost:3000", // frontend URL
