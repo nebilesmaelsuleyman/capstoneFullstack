@@ -202,9 +202,9 @@ export default function LandingPage() {
               <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-600">
                 <GraduationCap className="h-5 w-5 text-white" />
               </div>
-              <span className="text-lg font-bold text-white">EduPulse</span>
+              <span className="text-lg font-bold text-white">My School</span>
             </div>
-            <p className="text-sm text-slate-500">© 2024 EduPulse Platform Labs. All rights reserved.</p>
+            <p className="text-sm text-slate-500">© 2026 My_School Platform Labs. All rights reserved.</p>
             <div className="flex gap-6 text-sm text-slate-500">
               <Link href="#" className="hover:text-white transition-colors text-[11px] uppercase tracking-tighter">Privacy Policy</Link>
               <Link href="#" className="hover:text-white transition-colors text-[11px] uppercase tracking-tighter">Terms of Service</Link>
